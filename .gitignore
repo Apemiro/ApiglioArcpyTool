@@ -1,0 +1,10 @@
+*.pyc
+*.dbf
+*.txt
+*.csv
+*.shp
+*.sbn
+*.prj
+*.shx
+*.tif
+*.tfw
