@@ -45,6 +45,7 @@ def visibility_mtd(x,_FID):
 	visibl_tif=x+"Img"
 	arcpy.CreateRasterDataset_management("in_memory",visibl_tif,pixel_type="8_BIT_UNSIGNED")
 	arcpy.Visibility_3d(_DEM_TIFF_,x,visibl_tif,"#","FREQUENCY","ZERO","1","FLAT_EARTH",".13","#","#","#","#","#","#","#","#","#")
+	#视高还解决不了
 	visibl_fac=x+"F"
 	arcpy.RasterToPolygon_conversion(visibl_tif,visibl_fac)
 	clear_feature(visibl_fac,["Shape@","gridcode"],lambda x:x[1]==0)
@@ -64,6 +65,4 @@ def Visibility_Iterator(dem_data,Nodes,out_data,tmp_name="TMP"):
 	global _DEM_TIFF_
 	_DEM_TIFF_= dem_data
 	iterator(Nodes,visibility_mtd,out_data,tmp_name)
-
-
 
