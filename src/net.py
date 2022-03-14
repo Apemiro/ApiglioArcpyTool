@@ -71,7 +71,8 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 						cursor.insertRow([polyline,mat_row[j],i,j])
 	
 	
-def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True):
+def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True,field_calc=lambda fs1,fs2:0.0,in_memory=True):
+	import os
 	#获取节点坐标，保存在列表中
 	pos_1=[]
 	for row in arcpy.da.SearchCursor(dataset_1,["FID","SHAPE@XY"]+fields_1):
@@ -83,10 +84,15 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 	del row
 	
 	#新建网络output_edges
-	feature_class=arcpy.CreateFeatureclass_management("in_memory", output_edges, "POLYLINE")[0]
+	if in_memory:
+		feature_class=arcpy.CreateFeatureclass_management("in_memory", output_edges, "POLYLINE")[0]
+	else:
+		fs=os.path.split(output_edges)
+		feature_class=arcpy.CreateFeatureclass_management(fs[0], fs[1], "POLYLINE")[0]
 	arcpy.AddField_management(output_edges, "length", "DOUBLE")
 	arcpy.AddField_management(output_edges, "node_1", "LONG")
 	arcpy.AddField_management(output_edges, "node_2", "LONG")
+	arcpy.AddField_management(output_edges, "calc", "DOUBLE")
 	
 	for r1 in pos_1:
 		id_1=r1[0]
@@ -99,8 +105,8 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 			arr = arcpy.Array([_from,_to])
 			polyline = arcpy.Polyline(arr)
 			if criterion(r1[2:],r2[2:],polyline):
-				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","length","node_1","node_2"])
-				cursor.insertRow([polyline,polyline.length,id_1,id_2])
+				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","length","node_1","node_2","calc"])
+				cursor.insertRow([polyline,polyline.length,id_1,id_2,field_calc(r1[2:],r2[2:])])
 	
 	
 
