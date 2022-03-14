@@ -71,14 +71,14 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 						cursor.insertRow([polyline,mat_row[j],i,j])
 	
 	
-def Bipartite(dataset_1,dataset_2,output_edges,max_length):
+def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True):
 	#获取节点坐标，保存在列表中
 	pos_1=[]
-	for row in arcpy.da.SearchCursor(dataset_1,["FID","SHAPE@XY"]):
+	for row in arcpy.da.SearchCursor(dataset_1,["FID","SHAPE@XY"]+fields_1):
 		pos_1.append(row)
 	del row
 	pos_2=[]
-	for row in arcpy.da.SearchCursor(dataset_2,["FID","SHAPE@XY"]):
+	for row in arcpy.da.SearchCursor(dataset_2,["FID","SHAPE@XY"]+fields_2):
 		pos_2.append(row)
 	del row
 	
@@ -98,7 +98,7 @@ def Bipartite(dataset_1,dataset_2,output_edges,max_length):
 			_to=arcpy.Point(po_2[0],po_2[1])
 			arr = arcpy.Array([_from,_to])
 			polyline = arcpy.Polyline(arr)
-			if polyline.length<=max_length:
+			if criterion(r1[2:],r2[2:],polyline):
 				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","length","node_1","node_2"])
 				cursor.insertRow([polyline,polyline.length,id_1,id_2])
 	
