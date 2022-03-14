@@ -65,22 +65,21 @@ def FieldDefiner(dataset,field_name,value):
 	
 	
 #判断iden_dataset(点数据)分别能够被纳入多少个region_dataset中的面域内。符合条件的FID结果记录在record_field中，以逗号隔开。
-#ContainsRecorder('vills_prj_market','market_R3km','markets')
-def ContainsRecorder(iden_dataset,region_dataset,record_field):
+#ContainsRecorder('待识别要素','文本字段','面要素','面ID')
+def ContainsRecorder(iden_dataset,record_field,region_dataset,idenitiy_field):
 	regions=[]
-	for row in arcpy.da.SearchCursor(region_dataset,["FID","SHAPE@"]):
+	for row in arcpy.da.SearchCursor(region_dataset,[idenitiy_field,"SHAPE@"]):
 		regions.append(row)
 	del row
-	#print(regions)
-	cursor=arcpy.da.UpdateCursor(iden_dataset,["SHAPE@",record_field.decode("utf8")])
+	try:
+		cursor=arcpy.da.UpdateCursor(iden_dataset,["SHAPE@",record_field.decode("utf8")])
+	except:
+		cursor=arcpy.da.UpdateCursor(iden_dataset,["SHAPE@",record_field])
 	for row in cursor:
 		comma=','
 		for region in regions:
 			if region[1].contains(row[0]):
 				comma+=str(region[0])+','
-				#print(region[0])
-		#if comma[0]==',':
-		#	comma=comma[1:]
 		row[1]=comma
 		cursor.updateRow(row)
 	del row,cursor
