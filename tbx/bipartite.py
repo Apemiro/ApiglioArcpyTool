@@ -1,17 +1,21 @@
+import os
+import os.path
+p=os.path.split(__file__)[0]
+rp=os.path.realpath(p+"/..")
 import sys
-sys.path.append("..")
+sys.path.append(rp)
 import src
 import src.net
 
 point_1=arcpy.GetParameterAsText(0)
 point_2=arcpy.GetParameterAsText(1)
 fs1_str=arcpy.GetParameterAsText(2)
-if fs1_str=="":
+if fs1_str=="#" or fs1_str=="":
 	fields_1=[]
 else:
 	fields_1=fs1_str.split(";")
 fs2_str=arcpy.GetParameterAsText(3)
-if fs2_str=="":
+if fs2_str=="#" or fs2_str=="":
 	fields_2=[]
 else:
 	fields_2=fs2_str.split(";")
