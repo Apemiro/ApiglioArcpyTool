@@ -2,6 +2,8 @@
 import arcpy
 import arcpy.sa
 import arcpy.da
+import os
+import os.path
 
 
 #Adjacent2GeoNetwork(0,0,"F:/temp/test.txt",0)
@@ -19,9 +21,8 @@ def list_select(list,key):
 #criterion为匿名函数
 #Adjacent2GeoNetwork("HouseJC","社群",'f:/temp/szk.txt',"inner_net_300",300,lambda x,y:x.find(str(y))>=0)
 #Adjacent2GeoNetwork("vills_prj_market","markets",list(numpy.identity(812)),"market_edges",0,lambda x,y:x.find(","+str(y)+",")>=0)
-def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,criterion=lambda x,y:x==y):
-	
-	if type(adjacent_matrix)==str:
+def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,criterion=lambda x,y:x==y,in_memory=True):
+	if type(adjacent_matrix)==str or type(adjacent_matrix)==unicode:
 		#读取邻接矩阵txt文件
 		mat_f = open(adjacent_matrix, "r+")
 		mat_str = mat_f.read()
@@ -43,7 +44,12 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 	del row
 	
 	#新建网络output_edges
-	feature_class=arcpy.CreateFeatureclass_management("in_memory", output_edges, "POLYLINE")[0]
+	if in_memory:
+		feature_class=arcpy.CreateFeatureclass_management("in_memory", output_edges, "POLYLINE")[0]
+	else:
+		fs=os.path.split(output_edges)
+		feature_class=arcpy.CreateFeatureclass_management(fs[0], fs[1], "POLYLINE")[0]
+	
 	arcpy.AddField_management(output_edges, "weight", "DOUBLE")
 	arcpy.AddField_management(output_edges, "node_1", "LONG")
 	arcpy.AddField_management(output_edges, "node_2", "LONG")
@@ -72,8 +78,6 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 	
 	
 def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True,field_calc=lambda fs1,fs2:0.0,in_memory=True):
-	import os
-	import os.path
 	#获取节点坐标，保存在列表中
 	id_field_1=arcpy.ListFields(dataset_1)[0].name
 	id_field_2=arcpy.ListFields(dataset_2)[0].name
