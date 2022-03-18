@@ -73,13 +73,16 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 	
 def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True,field_calc=lambda fs1,fs2:0.0,in_memory=True):
 	import os
+	import os.path
 	#获取节点坐标，保存在列表中
+	id_field_1=arcpy.ListFields(dataset_1)[0].name
+	id_field_2=arcpy.ListFields(dataset_2)[0].name
 	pos_1=[]
-	for row in arcpy.da.SearchCursor(dataset_1,["FID","SHAPE@XY"]+fields_1):
+	for row in arcpy.da.SearchCursor(dataset_1,[id_field_1,"SHAPE@XY"]+fields_1):
 		pos_1.append(row)
 	del row
 	pos_2=[]
-	for row in arcpy.da.SearchCursor(dataset_2,["FID","SHAPE@XY"]+fields_2):
+	for row in arcpy.da.SearchCursor(dataset_2,[id_field_2,"SHAPE@XY"]+fields_2):
 		pos_2.append(row)
 	del row
 	
