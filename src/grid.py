@@ -60,8 +60,10 @@ def current_data_center(data_frame_name):
 	return [left+(right-left)/2.0,lower+(upper-lower)/2.0]
 	
 	
-def build_related_grid(x,y,data_name,offset=250):
+def build_related_grid(xy,data_name,offset=250):
 	arcpy.CreateFeatureclass_management("in_memory", data_name, "POLYGON")
+	x=xy[0]
+	y=xy[1]
 	
 	x0=x-offset
 	x1=x+offset
