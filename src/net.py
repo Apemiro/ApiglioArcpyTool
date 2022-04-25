@@ -82,20 +82,20 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 	id_field_1=arcpy.ListFields(dataset_1)[0].name
 	id_field_2=arcpy.ListFields(dataset_2)[0].name
 	pos_1=[]
-	for row in arcpy.da.SearchCursor(dataset_1,[id_field_1,"SHAPE@XY"]+fields_1):
+	for row in arcpy.da.SearchCursor(dataset_1,[id_field_1,"SHAPE@"]+fields_1):
 		pos_1.append(row)
 	del row
 	pos_2=[]
-	for row in arcpy.da.SearchCursor(dataset_2,[id_field_2,"SHAPE@XY"]+fields_2):
+	for row in arcpy.da.SearchCursor(dataset_2,[id_field_2,"SHAPE@"]+fields_2):
 		pos_2.append(row)
 	del row
 	
 	#新建网络output_edges
 	if in_memory:
-		feature_class=arcpy.CreateFeatureclass_management("in_memory", output_edges, "POLYLINE")[0]
+		feature_class=arcpy.CreateFeatureclass_management("in_memory", output_edges, "POLYLINE",has_z="ENABLED",has_m="ENABLED")[0]
 	else:
 		fs=os.path.split(output_edges)
-		feature_class=arcpy.CreateFeatureclass_management(fs[0], fs[1], "POLYLINE")[0]
+		feature_class=arcpy.CreateFeatureclass_management(fs[0], fs[1], "POLYLINE",has_z="ENABLED",has_m="ENABLED")[0]
 	arcpy.AddField_management(output_edges, "length", "DOUBLE")
 	arcpy.AddField_management(output_edges, "node_1", "LONG")
 	arcpy.AddField_management(output_edges, "node_2", "LONG")
@@ -103,12 +103,13 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 	
 	for r1 in pos_1:
 		id_1=r1[0]
-		po_1=r1[1]
+		po_1=r1[1].firstPoint
 		for r2 in pos_2:
 			id_2=r2[0]
-			po_2=r2[1]
-			_from=arcpy.Point(po_1[0],po_1[1])
-			_to=arcpy.Point(po_2[0],po_2[1])
+			po_2=r2[1].firstPoint
+			_from=arcpy.Point(po_1.X,po_1.Y,po_1.Z,po_1.M)
+			_to=arcpy.Point(po_2.X,po_2.Y,po_2.Z,po_2.M)
+			#print(po_1,po_2)
 			arr = arcpy.Array([_from,_to])
 			polyline = arcpy.Polyline(arr)
 			if criterion(r1[2:],r2[2:],polyline):

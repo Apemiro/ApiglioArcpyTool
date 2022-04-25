@@ -73,7 +73,12 @@ def createViewCircle(segment=24,data_frame_name="*",in_memory_feature="TempViewC
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([polygon])
 
-
+def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint"):
+	arcpy.CreateFeatureclass_management("in_memory", in_memory_feature, "POINT")
+	res=__get_extent(data_frame_name)
+	pts = arcpy.Point(res[0][0],res[0][1])
+	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
+	cursor.insertRow([pts])
 
 
 
