@@ -85,9 +85,9 @@ def ContainsRecorder(iden_dataset,record_field,region_dataset,idenitiy_field):
 	del row,cursor
 	
 	
-	
+
 #utf8_field这个参数名称有点问题
-def FieldExtractor(dataset,field_name,utf8_field=True):
+def FieldExtractor(dataset,field_name,utf8_field=True,key=lambda x:x):
 	ll=set()
 	cursor=arcpy.UpdateCursor(dataset)
 	for row in cursor:
@@ -97,8 +97,21 @@ def FieldExtractor(dataset,field_name,utf8_field=True):
 		ll.add(str)
 	del row,cursor
 	return list(ll)
-	
-	
+
+
+#utf8_field这个参数名称有点问题
+def FieldLister(dataset,field_name,utf8_field=True,key=lambda x:x):
+	ll=[]
+	cursor=arcpy.da.SearchCursor(dataset,[field_name.decode("utf8")])
+	for row in cursor:
+		str=row[0]
+		if not utf8_field:
+			str=str.encode("utf8")
+		ll.append(key(str))
+	del row,cursor
+	return ll
+
+
 import math
 def edge_angle(edge_dataset,field_name):
 	with arcpy.da.UpdateCursor(edge_dataset, ["SHAPE@",field_name]) as cursor:

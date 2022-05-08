@@ -33,6 +33,28 @@ def raster_ca(dataset,output,neighbor_dist=1,ca_func=lambda arr:arr[1,1],no_data
 	new_raster.save(output)
 
 
+def raster_xy(raster,xy):
+	ll=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","LEFT")
+	rr=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","RIGHT")
+	tt=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","TOP")
+	bb=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","BOTTOM")
+	cx=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","CELLSIZEX")
+	cy=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","CELLSIZEY")
+	count_col=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","COLUMNCOUNT")
+	count_row=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","ROWCOUNT")
+	count_band=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","BANDCOUNT")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 '''

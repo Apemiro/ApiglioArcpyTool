@@ -18,26 +18,48 @@ def PointMove(dataset,x_offset,y_offset):
 			for i in arr:
 				i.X+=x_offset
 				i.Y+=y_offset
-			row[0]=arcpy.Polyline(acrpy.Array(arr))
+			row[0]=arcpy.Polyline(arcpy.Array(arr))
 		elif type(geo) == arcpy.geometries.Polygon:
 			arr=geo.getPart()
 			for i in arr:
 				for j in i:
 					j.X+=x_offset
 					j.Y+=y_offset
-			row[0]=arcpy.Polygon(acrpy.Array(arr))
+			row[0]=arcpy.Polygon(arcpy.Array(arr))
 		else:
 			print(type(geo))
 			raise Exception("错误的文件几何类型")
-		for region in regions:
-			if region[1].contains(row[0]):
-				comma+=str(region[0])+','
-		row[1]=comma
+	del row,cursor
+
+
+def GeoZone(dataset,x_times,y_times):
+	cursor=arcpy.da.UpdateCursor(dataset,["SHAPE@"])
+	for row in cursor:
+		geo=row[0]
+		if type(geo) == arcpy.geometries.PointGeometry:
+			ptr=geo.firstPoint
+			ptr.X*=x_times
+			ptr.Y*=y_times
+			row[0]=arcpy.geometries.PointGeometry(ptr)
+		elif type(geo) == arcpy.geometries.Polyline:
+			arr=geo.getPart()[0]
+			for i in arr:
+				i.X*=x_times
+				i.Y*=y_times
+			row[0]=arcpy.Polyline(arcpy.Array(arr))
+		elif type(geo) == arcpy.geometries.Polygon:
+			arr=geo.getPart()
+			for i in arr:
+				for j in i:
+					j.X*=x_times
+					j.Y*=y_times
+			row[0]=arcpy.Polygon(arcpy.Array(arr))
+		else:
+			print(type(geo))
+			raise Exception("错误的文件几何类型")
 		cursor.updateRow(row)
 	del row,cursor
 
-	
-	
 
 def ContainsRecorder(iden_dataset,region_dataset,record_field):
 	regions=[]
