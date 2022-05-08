@@ -3,7 +3,15 @@
 
 import arcpy
 
+
+#issubclass(arcpy.geometries.PointGeometry,arcpy.geometries.Geometry)
+
+
 def translation(geo,offset):
+	if issubclass(geo.__class__,arcpy.geometries.Geometry):
+		
+	else:
+		
 	x_offset=offset[0]
 	y_offset=offset[1]
 	if type(geo) == arcpy.geometries.PointGeometry:
