@@ -8,10 +8,8 @@ import arcpy
 
 
 def translation(geo,offset):
-	if issubclass(geo.__class__,arcpy.geometries.Geometry):
-		
-	else:
-		
+	if not issubclass(geo.__class__,arcpy.Geometry):
+		raise Exception("geo必须是arcpy.Geometry类")
 	x_offset=offset[0]
 	y_offset=offset[1]
 	if type(geo) == arcpy.geometries.PointGeometry:
