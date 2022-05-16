@@ -24,16 +24,29 @@ def map_points(geo,operation=lambda x:x):
 	else:
 		raise Exception("暂不支持或无效的arcpy.Geometry类")
 
-def _set_z_operation(point):
-	res=point.clone
-	res.Z=z
-	return res
+#map_points中operation(geo,h)参数的柯里化过程
+def _currying_geo_setZ_(h):
+	def result_func(point):
+		x=point.X
+		y=point.Y
+		m=point.M
+		return arcpy.Point(x,y,h,m)
+	return result_func
+def _currying_geo_addZ_(h):
+	def result_func(point):
+		x=point.X
+		y=point.Y
+		z=point.Z
+		m=point.M
+		return arcpy.Point(x,y,z+h,m)
+	return result_func
 
-def set_z_points(geo,z_operation=lambda x:0):
-	_set_z_operation=lambda x
-	map_points(geo,operation=_set_z_operation)
-
-
+def set_z_points(geo,z_value):
+	func=_currying_geo_setZ_(z_value)
+	return map_points(geo,operation=func)
+def add_z_points(geo,z_offset):
+	func=_currying_geo_addZ_(z_offset)
+	return map_points(geo,operation=func)
 
 
 
