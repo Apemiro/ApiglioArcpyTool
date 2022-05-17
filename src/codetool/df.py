@@ -3,15 +3,21 @@
 import arcpy
 import math
 
-def __get_extent(data_frame_name):
-	mxd = arcpy.mapping.MapDocument(r"CURRENT")
+def document():
+	return arcpy.mapping.MapDocument(r"CURRENT")
+
+def data_frame(data_frame_name="*"):
+	mxd = document()
 	data_frames = arcpy.mapping.ListDataFrames(mxd, data_frame_name)
 	if data_frames==[]:
 		raise Exception("找不到符合条件的数据框")
 	else:
-		data_frame = data_frames[0]
-	ll=data_frame.extent.lowerLeft
-	ur=data_frame.extent.upperRight
+		return(data_frames[0])
+
+def __get_extent(data_frame_name):
+	dfm=data_frame(data_frame_name)
+	ll=dfm.extent.lowerLeft
+	ur=dfm.extent.upperRight
 	lower=ll.Y
 	left=ll.X
 	upper=ur.Y
@@ -73,12 +79,18 @@ def createViewCircle(segment=24,data_frame_name="*",in_memory_feature="TempViewC
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([polygon])
 
-def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint"):
-	arcpy.CreateFeatureclass_management("in_memory", in_memory_feature, "POINT")
+def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint",has_z=False,has_m=False):
+	zz="Disabled"
+	mm="Disabled"
+	if has_z: zz="Enabled"
+	if has_m: mm="Enabled"
+	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POINT",has_z=zz,has_m=mm)
 	res=__get_extent(data_frame_name)
-	pts = arcpy.Point(res[0][0],res[0][1])
+	pts = arcpy.Point(res[0][0],res[0][1],0,0)
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([pts])
+
+
 
 
 

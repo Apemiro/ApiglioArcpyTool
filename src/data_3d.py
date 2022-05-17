@@ -29,7 +29,6 @@ def CopyTo3D(dataset,dst_dataset,field_name,key=lambda x:x):
 		shp=apgeo_points.set_z_points(shp,z)
 		tmp_lst.append(z)
 		other_values=row[1:]
-		print(shp)
 		dst_cursor.insertRow([shp]+list(other_values))
 	del row,cursor,dst_cursor
 	return(tmp_lst)
