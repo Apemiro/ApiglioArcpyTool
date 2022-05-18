@@ -33,14 +33,31 @@ def CopyTo3D(dataset,dst_dataset,field_name,key=lambda x:x):
 	del row,cursor,dst_cursor
 	return(tmp_lst)
 
-
-
-
-
-
-
-
-
+def skyline_table_to_polygon(in_table,out_dataset,path="in_memory"):
+	point_coords=[]
+	acc=-1
+	break_point=-1
+	last_value=400 # 大于最大水平角
+	cursor=arcpy.da.UpdateCursor(in_table,["HORIZ_ANG","ZENITH_ANG"])
+	for row in cursor:
+		acc+=1
+		point_coords.append(row)
+		if row[0]>last_value+10:
+			break_point=acc
+			#循环条件的+10毫无意义，浮点型比较的特性，以后再管为啥吧
+		last_value=row[0]
+	point_coords_sorted=point_coords[break_point:]+point_coords[:break_point]
+	del cursor
+	point_coords_sorted.insert(0,[360.0,0.0])
+	point_coords_sorted.append([0.0,0.0])
+	points=[]
+	for p in point_coords_sorted:
+		points.append(arcpy.Point(*p))
+	ploygon=arcpy.Polygon(arcpy.Array(points))
+	arcpy.management.CreateFeatureclass(path,out_dataset,"POLYGON")
+	cursor=arcpy.da.InsertCursor(path+'/'+out_dataset,["SHAPE@"])
+	cursor.insertRow([ploygon])
+	del cursor
 
 
 
