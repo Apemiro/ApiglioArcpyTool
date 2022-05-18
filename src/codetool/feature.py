@@ -20,8 +20,29 @@ def to_set(dataset,field="SHAPE@"):
 	del row,cursor
 	return res
 
-
-
+def shape_to_feature(geo,name,path="in_memory"):
+	if geo.__class__==arcpy.PointGeometry:
+		pass
+	elif geo.__class__==arcpy.Point:
+		pass
+	elif geo.__class__==arcpy.Polyline:
+		pass
+	elif geo.__class__==arcpy.Polygon:
+		pass
+	else:
+		raise Exception("无效的图形参数")
+	if geo.firstPoint.Z<>None:
+		zz="Enabled"
+	else:
+		zz="Disabled"
+	if geo.firstPoint.M<>None:
+		mm="Enabled"
+	else:
+		mm="Disabled"
+	arcpy.management.CreateFeatureclass(path,name,geo.type.upper(),spatial_reference=geo.spatialReference,has_z=zz,has_m=mm)
+	cursor=arcpy.da.InsertCursor(path+'/'+name,["SHAPE@"])
+	cursor.insertRow([geo])
+	del cursor
 
 
 

@@ -4,6 +4,11 @@ import numpy
 import random
 import math
 import os.path
+import sys
+
+sys.path.append(os.path.split(__file__)[0])
+import codetool.df
+
 
 #clear_feature("Test_Point2",["Shape@","Str"],lambda x:x[1]=="aaaaaaaaaa")
 def clear_feature(feature_name,fields=["Shape@"],criterion=lambda x:True):
@@ -18,6 +23,7 @@ def clear_feature(feature_name,fields=["Shape@"],criterion=lambda x:True):
 #	#...
 #	#return(out_name)
 def iterator(in_dataset,out_dataset="Iterator_Result",method=None,temp_name="TMP"):
+	merge_list=[]
 	if not callable(method):
 		raise Exception("method参数需要是函数")
 	paths=list(os.path.split(temp_name))
@@ -25,19 +31,24 @@ def iterator(in_dataset,out_dataset="Iterator_Result",method=None,temp_name="TMP
 		paths[0]="in_memory"
 	toto=int(arcpy.management.GetCount(in_dataset).getOutput(0))
 	#shapetype=arcpy.Describe(in_dataset).shapetype
-	acc=0
-	digit=int(math.ceil(math.log10(toto+1)))
-	merge_list=[]
-	with arcpy.da.UpdateCursor(in_dataset,["FID"]) as cursor:
-		for row in cursor:
-			acc+=1
-			ds_import=paths[1]+str(acc).zfill(digit)+".shp"
-			ds_export=paths[1]+str(acc).zfill(digit)+"_out.shp"
-			merge_list.append(paths[0]+'/'+ds_export)
-			arcpy.conversion.FeatureClassToFeatureClass(in_dataset,paths[0],ds_import,'"FID" = '+str(row[0]))
-			method(paths[0],ds_import,ds_export)
-			arcpy.management.Delete(paths[0]+'/'+ds_import)
-			#print("%d/%d"%(acc,toto))
+	codetool.df.BeginUpdate()
+	try:
+		acc=0
+		digit=int(math.ceil(math.log10(toto+1)))
+		with arcpy.da.UpdateCursor(in_dataset,["FID"]) as cursor:
+			for row in cursor:
+				acc+=1
+				ds_import=paths[1]+str(acc).zfill(digit)+".shp"
+				ds_export=paths[1]+str(acc).zfill(digit)+"_out.shp"
+				merge_list.append(paths[0]+'/'+ds_export)
+				arcpy.conversion.FeatureClassToFeatureClass(in_dataset,paths[0],ds_import,'"FID" = '+str(row[0]))
+				method(paths[0],ds_import,ds_export)
+				arcpy.management.Delete(paths[0]+'/'+ds_import)
+				#print("%d/%d"%(acc,toto))
+	except:
+		pass
+	finally:
+		codetool.df.EndUpdate()
 	print("merging...")
 	arcpy.management.Merge(merge_list,paths[0]+'/'+out_dataset+'.shp')
 	for filename in merge_list:
@@ -71,7 +82,7 @@ def Visibility_Iterator(dem_data,Nodes,out_data,tmp_name="TMP"):
 	iterator(Nodes,out_data,visibility_mtd,tmp_name)
 
 def __iter__nothing(pathn,inpn,outn):
-	print(pathn+'/'+inpn,pathn,outn)
+	#print(pathn+'/'+inpn,pathn,outn)
 	arcpy.conversion.FeatureClassToFeatureClass(pathn+'/'+inpn,pathn,outn)
 
 def iter_nothing(in_dataset,out_dataset,run_path):

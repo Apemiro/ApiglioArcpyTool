@@ -3,6 +3,16 @@
 import arcpy
 import math
 
+isAddOutputsToMap=arcpy.env.addOutputsToMap
+
+def BeginUpdate():
+	isAddOutputsToMap=arcpy.env.addOutputsToMap
+	arcpy.env.addOutputsToMap=False
+	print("禁用导出自动加载为图层")
+def EndUpdate():
+	arcpy.env.addOutputsToMap=isAddOutputsToMap
+	print("启用导出自动加载为图层")
+
 def document():
 	return arcpy.mapping.MapDocument(r"CURRENT")
 
@@ -90,9 +100,18 @@ def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint",has_z
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([pts])
 
+def list_layer(wildcard="*",data_frame_name="*"):
+	mxd=document()
+	ddf=data_frame(data_frame_name)
+	return arcpy.mapping.listLayers(mxd,wildcard,ddf)
 
+def add_layer(filename,data_frame_name="*",position="TOP"):
+	ddf=data_frame(data_frame_name)
+	nl=arcpy.mapping.Layer(filename)
+	arcpy.mapping.AddLayer(ddf,nl,position)
 
-
+def del_layer(layername):
+	raise Exception("unimplemented")
 
 
 
