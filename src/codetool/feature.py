@@ -44,7 +44,12 @@ def shape_to_feature(geo,name,path="in_memory"):
 	cursor.insertRow([geo])
 	del cursor
 
-
+#clear_feature("Test_Point2",["Shape@","Str"],lambda x:x[1]=="aaaaaaaaaa")
+def clear_feature(feature_name,fields=["Shape@"],criterion=lambda x:True):
+	with arcpy.da.UpdateCursor(feature_name,fields) as cursor:
+		for row in cursor:
+			if criterion(row):
+				cursor.deleteRow()
 
 
 

@@ -139,7 +139,12 @@ class SkylineGrid:
 
 
 
+'''
+slgrid=apiglio.src.data_3d.SkylineGrid()
 
+
+
+'''
 
 
 

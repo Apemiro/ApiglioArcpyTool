@@ -24,6 +24,19 @@ def data_frame(data_frame_name="*"):
 	else:
 		return(data_frames[0])
 
+def check_data_frame_sr_valid(data_frame_name="*"):
+	ddf=data_frame(data_frame_name)
+	sr_str=ddf.spatialReference.exportToString()[:6]
+	if sr_str==u"PROJCS" or sr_str==u"GEOGCS":
+		return True
+	else:
+		return False
+
+def str_data_frame_sr(data_frame_name="*"):
+	ddf=data_frame(data_frame_name)
+	return ddf.spatialReference.exportToString()
+	
+
 def __get_extent(data_frame_name):
 	dfm=data_frame(data_frame_name)
 	ll=dfm.extent.lowerLeft
@@ -58,7 +71,11 @@ def upper(data_frame_name="*"):
 	return __get_extent(data_frame_name)[6]
 	
 def createViewBox(data_frame_name="*",in_memory_feature="TempViewBox"):
-	arcpy.CreateFeatureclass_management("in_memory", in_memory_feature, "POLYGON")
+	#if not check_data_frame_sr_valid(data_frame_name):
+	#	raise Exception("未知坐标系不能生成目标要素。")
+	#sr=str_data_frame_sr
+	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POLYGON")
+	#arcpy.management.DefineProjection(in_memory_feature,sr)
 	res=__get_extent(data_frame_name)
 	p1=arcpy.Point(res[3],res[5])
 	p2=arcpy.Point(res[3],res[6])
@@ -70,7 +87,11 @@ def createViewBox(data_frame_name="*",in_memory_feature="TempViewBox"):
 	cursor.insertRow([polygon])
 
 def createViewCircle(segment=24,data_frame_name="*",in_memory_feature="TempViewCircle"):
-	arcpy.CreateFeatureclass_management("in_memory", in_memory_feature, "POLYGON")
+	#if not check_data_frame_sr_valid(data_frame_name):
+	#	raise Exception("未知坐标系不能生成目标要素。")
+	#sr=str_data_frame_sr
+	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POLYGON")
+	#arcpy.management.DefineProjection(in_memory_feature,sr)
 	res=__get_extent(data_frame_name)
 	diam=res[1]
 	if res[2]<diam:
@@ -90,12 +111,16 @@ def createViewCircle(segment=24,data_frame_name="*",in_memory_feature="TempViewC
 	cursor.insertRow([polygon])
 
 def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint",has_z=False,has_m=False):
+	#if not check_data_frame_sr_valid(data_frame_name):
+	#	raise Exception("未知坐标系不能生成目标要素。")
 	zz="Disabled"
 	mm="Disabled"
 	if has_z: zz="Enabled"
 	if has_m: mm="Enabled"
-	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POINT",has_z=zz,has_m=mm)
+	#sr=str_data_frame_sr
 	res=__get_extent(data_frame_name)
+	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POINT")
+	#arcpy.management.DefineProjection(in_memory_feature,sr)
 	pts = arcpy.Point(res[0][0],res[0][1],0,0)
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([pts])
