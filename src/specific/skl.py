@@ -11,7 +11,7 @@ import map_feature
 
 
 class SkylineGrid:
-	"指定水平和垂直角度范围及秒单位步长，创建用于天际线轮廓分析的点阵。"+"\n"+"SkylineGrid(a_horiz_range=[0,360],a_zenith_range=[75,105],a_cell_width_second=900,a_cell_height_second=900)"
+	"指定水平和垂直角度范围及秒单位步长，创建用于天际线轮廓分析的点阵。\nSkylineGrid(a_horiz_range=[0,360],a_zenith_range=[75,105],a_cell_width_second=900,a_cell_height_second=900)"
 	point_cells=[]
 	horiz_range=[0,360]
 	zenith_range=[75,105]
@@ -117,7 +117,7 @@ def __iter__skyline_graph(pathn,inpns,outn):
 	skyline_table_to_polygon(temp_table_name,outn,pathn)
 
 def iter_skyline_graph(obspoint,skyline,out_dataset,run_path):
-	map_feature.iterator_list([obspoint,skyline],out_dataset,__iter__skyline_graph,run_path,'.dbf')
+	map_feature.iterator_list([obspoint,skyline],out_dataset,__iter__skyline_graph,run_path,'.shp')
 
 
 

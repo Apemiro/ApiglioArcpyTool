@@ -16,7 +16,21 @@ def EndUpdate():
 def document():
 	return arcpy.mapping.MapDocument(r"CURRENT")
 
-def data_frame(data_frame_name="*"):
+def active_doc():
+	return arcpy.mapping.MapDocument(r"CURRENT")
+
+def active_df():
+	return active_doc().activeDataFrame
+
+def active_sr():
+	return active_df().spatialReference
+
+def active_sr_str():
+	return active_df().spatialReference.exportToString()
+
+def data_frame(data_frame_name=""):
+	if data_frame_name=="":
+		return active_df()
 	mxd = document()
 	data_frames = arcpy.mapping.ListDataFrames(mxd, data_frame_name)
 	if data_frames==[]:
@@ -24,7 +38,7 @@ def data_frame(data_frame_name="*"):
 	else:
 		return(data_frames[0])
 
-def check_data_frame_sr_valid(data_frame_name="*"):
+def check_data_frame_sr_valid(data_frame_name=""):
 	ddf=data_frame(data_frame_name)
 	sr_str=ddf.spatialReference.exportToString()[:6]
 	if sr_str==u"PROJCS" or sr_str==u"GEOGCS":
@@ -32,12 +46,27 @@ def check_data_frame_sr_valid(data_frame_name="*"):
 	else:
 		return False
 
-def str_data_frame_sr(data_frame_name="*"):
+def str_data_frame_sr(data_frame_name=""):
 	ddf=data_frame(data_frame_name)
 	return ddf.spatialReference.exportToString()
 	
+def is_gcs(data_frame_name=""):
+	ddf=data_frame(data_frame_name)
+	sr_str=ddf.spatialReference.exportToString()[:6]
+	if sr_str==u"GEOGCS":
+		return True
+	else:
+		return False
 
-def __get_extent(data_frame_name):
+def is_pcs(data_frame_name=""):
+	ddf=data_frame(data_frame_name)
+	sr_str=ddf.spatialReference.exportToString()[:6]
+	if sr_str==u"PROJCS":
+		return True
+	else:
+		return False
+
+def __get_extent(data_frame_name=""):
 	dfm=data_frame(data_frame_name)
 	ll=dfm.extent.lowerLeft
 	ur=dfm.extent.upperRight
@@ -49,28 +78,28 @@ def __get_extent(data_frame_name):
 	# [center, width, height, x0, x1, y0, y1]
 	return [center,right-left,upper-lower,left,right,lower,upper]
 	
-def center(data_frame_name="*"):
+def center(data_frame_name=""):
 	return __get_extent(data_frame_name)[0]
 	
-def width(data_frame_name="*"):
+def width(data_frame_name=""):
 	return __get_extent(data_frame_name)[1]
 	
-def height(data_frame_name="*"):
+def height(data_frame_name=""):
 	return __get_extent(data_frame_name)[2]
 	
-def left(data_frame_name="*"):
+def left(data_frame_name=""):
 	return __get_extent(data_frame_name)[3]
 	
-def right(data_frame_name="*"):
+def right(data_frame_name=""):
 	return __get_extent(data_frame_name)[4]
 	
-def lower(data_frame_name="*"):
+def lower(data_frame_name=""):
 	return __get_extent(data_frame_name)[5]
 	
-def upper(data_frame_name="*"):
+def upper(data_frame_name=""):
 	return __get_extent(data_frame_name)[6]
 	
-def createViewBox(data_frame_name="*",in_memory_feature="TempViewBox"):
+def createViewBox(data_frame_name="",in_memory_feature="TempViewBox"):
 	#if not check_data_frame_sr_valid(data_frame_name):
 	#	raise Exception("未知坐标系不能生成目标要素。")
 	#sr=str_data_frame_sr
@@ -86,7 +115,7 @@ def createViewBox(data_frame_name="*",in_memory_feature="TempViewBox"):
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([polygon])
 
-def createViewCircle(segment=24,data_frame_name="*",in_memory_feature="TempViewCircle"):
+def createViewCircle(segment=24,data_frame_name="",in_memory_feature="TempViewCircle"):
 	#if not check_data_frame_sr_valid(data_frame_name):
 	#	raise Exception("未知坐标系不能生成目标要素。")
 	#sr=str_data_frame_sr
@@ -110,7 +139,7 @@ def createViewCircle(segment=24,data_frame_name="*",in_memory_feature="TempViewC
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([polygon])
 
-def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint",has_z=False,has_m=False):
+def createViewCenter(data_frame_name="",in_memory_feature="TempViewPoint",has_z=False,has_m=False):
 	#if not check_data_frame_sr_valid(data_frame_name):
 	#	raise Exception("未知坐标系不能生成目标要素。")
 	zz="Disabled"
@@ -125,12 +154,12 @@ def createViewCenter(data_frame_name="*",in_memory_feature="TempViewPoint",has_z
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([pts])
 
-def list_layer(wildcard="*",data_frame_name="*"):
+def list_layer(wildcard="*",data_frame_name=""):
 	mxd=document()
 	ddf=data_frame(data_frame_name)
 	return arcpy.mapping.listLayers(mxd,wildcard,ddf)
 
-def add_layer(filename,data_frame_name="*",position="TOP"):
+def add_layer(filename,data_frame_name="",position="TOP"):
 	ddf=data_frame(data_frame_name)
 	nl=arcpy.mapping.Layer(filename)
 	arcpy.mapping.AddLayer(ddf,nl,position)

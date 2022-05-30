@@ -2,6 +2,10 @@
 import arcpy
 import arcpy.sa
 
+import os.path
+import sys
+sys.path.append(os.path.split(__file__)[0]+"/..")
+import codetool.df as adf
 
 
 
@@ -40,8 +44,8 @@ def latlong2FID(lng,lat):
 	
 	x=((lng-lng_w)*3600 % width_m / f_digit)
 	y=((lat-lat_s)*3600 % width_m / f_digit)
-	return [x,y]
-	return str(y).zfill(f_digit)+str(x).zfill(f_digit)
+	#return [x,y]
+	return str(int(y)).zfill(f_digit)+str(int(x)).zfill(f_digit)
 	
 	
 def current_data_center(data_frame_name):
@@ -58,10 +62,51 @@ def current_data_center(data_frame_name):
 	upper=ur.Y
 	right=ur.X
 	return [left+(right-left)/2.0,lower+(upper-lower)/2.0]
-	
-	
+
+def __build_fine_grid_polygon(x,y,width,height):
+	p1=arcpy.Point(x,y)
+	p2=arcpy.Point(x+width,y)
+	p3=arcpy.Point(x+width,y+height)
+	p4=arcpy.Point(x,y+height)
+	arr = arcpy.Array([p1,p2,p3,p4])
+	return arcpy.Polygon(arr)
+
+def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid"):
+	ddf=adf.active_df()
+	ext=ddf.extent
+	if not adf.is_gcs:
+		raise Exception("仅支持地理坐标系")
+	if ext.width>0.5 or ext.height>0.5:
+		raise Exception("格网过大")
+	ll=ext.lowerLeft.X
+	rr=ext.upperRight.X
+	tt=ext.upperRight.Y
+	bb=ext.lowerLeft.Y
+	x1=ll-(ll%width)
+	x2=rr-(rr%width)
+	y1=bb-(bb%height)
+	y2=tt-(tt%height)
+	arcpy.management.CreateFeatureclass(pathname, data_name, "POLYGON",spatial_reference=adf.active_sr_str())
+	arcpy.management.AddField(pathname+"/"+data_name,"M_ID","TEXT",field_length=3)
+	arcpy.management.AddField(pathname+"/"+data_name,"F_ID","TEXT",field_length=6)
+	arcpy.management.AddField(pathname+"/"+data_name,"Full_ID","TEXT",field_length=9)
+	cursor = arcpy.da.InsertCursor(pathname+"/"+data_name, ["SHAPE@","M_ID","F_ID","Full_ID"])
+	i=x1
+	res=[]
+	while i<=x2+width:
+		j=y1
+		while j<=y2+height:
+			shape=__build_fine_grid_polygon(i,j,width,height)
+			res.append(shape)
+			m_id=latlong2MID(i,j)
+			f_id=latlong2FID(i,j)
+			cursor.insertRow([shape,m_id,f_id,m_id+f_id])
+			j+=height
+		i+=width
+	return res
+
 def build_related_grid(xy,data_name,offset=250):
-	arcpy.CreateFeatureclass_management("in_memory", data_name, "POLYGON")
+	arcpy.management.CreateFeatureclass("in_memory", data_name, "POLYGON")
 	x=xy[0]
 	y=xy[1]
 	

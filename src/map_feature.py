@@ -98,9 +98,10 @@ def iterator_list(in_dataset_list,out_dataset="Iterator_List_Result",method_list
 				method_list(paths[0],ds_import_list,ds_export)
 				for ds_import in ds_import_list:
 					arcpy.management.Delete(paths[0]+'/'+ds_import)
-				#print("%d/%d"%(acc,feature_count))
+				print("%d/%d"%(acc,feature_count))
 	except:
-		pass
+		print("迭代过程出错，未执行后续合并。")
+		return(None)
 	finally:
 		codetool.df.EndUpdate()
 	print("merging...")
