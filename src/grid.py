@@ -63,13 +63,13 @@ def current_data_center(data_frame_name):
 	right=ur.X
 	return [left+(right-left)/2.0,lower+(upper-lower)/2.0]
 
-def __build_fine_grid_polygon(x,y,width,height):
+def __build_fine_grid_polygon(x,y,width,height,sr):
 	p1=arcpy.Point(x,y)
 	p2=arcpy.Point(x+width,y)
 	p3=arcpy.Point(x+width,y+height)
 	p4=arcpy.Point(x,y+height)
 	arr = arcpy.Array([p1,p2,p3,p4])
-	return arcpy.Polygon(arr)
+	return arcpy.Polygon(arr,sr)
 
 def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid"):
 	ddf=adf.active_df()
@@ -86,7 +86,8 @@ def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid"):
 	x2=rr-(rr%width)
 	y1=bb-(bb%height)
 	y2=tt-(tt%height)
-	arcpy.management.CreateFeatureclass(pathname, data_name, "POLYGON",spatial_reference=adf.active_sr_str())
+	sr=adf.active_sr_str()
+	arcpy.management.CreateFeatureclass(pathname, data_name, "POLYGON",spatial_reference=sr)
 	arcpy.management.AddField(pathname+"/"+data_name,"M_ID","TEXT",field_length=3)
 	arcpy.management.AddField(pathname+"/"+data_name,"F_ID","TEXT",field_length=6)
 	arcpy.management.AddField(pathname+"/"+data_name,"Full_ID","TEXT",field_length=9)
@@ -96,7 +97,7 @@ def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid"):
 	while i<=x2+width:
 		j=y1
 		while j<=y2+height:
-			shape=__build_fine_grid_polygon(i,j,width,height)
+			shape=__build_fine_grid_polygon(i,j,width,height,sr)
 			res.append(shape)
 			m_id=latlong2MID(i,j)
 			f_id=latlong2FID(i,j)
