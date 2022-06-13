@@ -104,7 +104,7 @@ def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid"):
 			cursor.insertRow([shape,m_id,f_id,m_id+f_id])
 			j+=height
 		i+=width
-	return res
+	#return res
 
 def build_related_grid(xy,data_name,offset=250):
 	arcpy.management.CreateFeatureclass("in_memory", data_name, "POLYGON")
