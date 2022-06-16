@@ -2,6 +2,10 @@
 import arcpy
 import arcpy.sa
 import arcpy.da
+import sys
+import os.path
+sys.path.append(os.path.split(__file__)[0])
+import codetool.feature as ct_fea
 	
 	
 def PointMove(dataset,x_offset,y_offset):
@@ -79,3 +83,41 @@ def ContainsRecorder(iden_dataset,region_dataset,record_field):
 		row[1]=comma
 		cursor.updateRow(row)
 	del row,cursor
+
+def unique(dataset,path,out_name):
+	shps=[]
+	sr=arcpy.Describe(dataset).SpatialReference.ExportToString()
+	arcpy.management.CreateFeatureDataset(path,out_name,sr)
+	cur1=arcpy.da.SearchCursor(dataset,["SHAPE@"])
+	cur2=arcpy.da.InsertCursor(path+"/"+out_name,["SHAPE@"])
+	for row in cur1:
+		pass
+		#这没写完
+
+def check_unique(dataset):
+	shps=ct_fea.to_list(dataset)
+	count=len(shps)
+	for ii in range(count):
+		for jj in range(count):
+			if ii==jj:
+				continue
+			if shps[ii].equals(shps[jj]):
+				return(shps[ii])
+	return(None)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
