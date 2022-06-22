@@ -87,12 +87,18 @@ def ContainsRecorder(iden_dataset,region_dataset,record_field):
 def unique(dataset,path,out_name):
 	shps=[]
 	sr=arcpy.Describe(dataset).SpatialReference.ExportToString()
-	arcpy.management.CreateFeatureDataset(path,out_name,sr)
+	st=arcpy.Describe(dataset).shapetype
+	arcpy.management.CreateFeatureclass(path,out_name,st,spatial_reference=sr)
 	cur1=arcpy.da.SearchCursor(dataset,["SHAPE@"])
-	cur2=arcpy.da.InsertCursor(path+"/"+out_name,["SHAPE@"])
 	for row in cur1:
-		pass
-		#这没写完
+		if len(filter(lambda x:x==row[0],shps))==0:
+			shps.append(row[0])
+	del cur1
+	#这个方法感觉还是太慢了
+	cur2=arcpy.da.InsertCursor(path+"/"+out_name,["SHAPE@"])
+	for row in shps:
+		cur2.insertRow([row])
+	del cur2
 
 def check_unique(dataset):
 	shps=ct_fea.to_list(dataset)
