@@ -44,6 +44,13 @@ def shape_to_feature(geo,name,path="in_memory"):
 	cursor.insertRow([geo])
 	del cursor
 
+def to_file(list_of_geometry,dataset="temp_list_export",path="in_memory"):
+	shape_type=list_of_geometry[0].type.upper()
+	arcpy.management.CreateFeatureclass(path,dataset,shape_type)
+	with arcpy.da.InsertCursor(path+"/"+dataset,["SHAPE@"]) as cursor:
+		for shape in list_of_geometry:
+			cursor.insertRow([shape])
+
 #clear_feature("Test_Point2",["Shape@","Str"],lambda x:x[1]=="aaaaaaaaaa")
 def clear_feature(feature_name,fields=["Shape@"],criterion=lambda x:True):
 	with arcpy.da.UpdateCursor(feature_name,fields) as cursor:

@@ -65,7 +65,7 @@ def iterator_list(in_dataset_list,out_dataset="Iterator_List_Result",method_list
 		if feature_count==None:
 			feature_count=toto
 		elif feature_count<>toto:
-			raise Exception("in_dataset_list中各要素集中的要素数量不相同。")
+			raise Exception("in_dataset_list中各要素集中的要素数量不相同，请检查要素数量以及是否选择了部分要素。")
 	codetool.df.BeginUpdate()
 	try:
 		acc=0
