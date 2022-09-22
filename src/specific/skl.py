@@ -123,8 +123,3 @@ def iter_skyline_graph(obspoint,skyline,out_dataset,run_path):
 
 
 
-
-
-
-
-
