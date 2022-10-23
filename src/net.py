@@ -75,8 +75,48 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 					if max_dist==0 or polyline.length<=max_dist:
 						cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","weight","node_1","node_2"])
 						cursor.insertRow([polyline,mat_row[j],i,j])
+
+
+def GenGeoNetworkByLength(nodes,output_edges,max_dist,in_memory=True):
+
+	#获取节点坐标，保存在列表中
+	positions=[]
+	for row in arcpy.da.SearchCursor(nodes,["SHAPE@XY"]):
+		positions.append(row[0])
+	del row
 	
+	#新建网络output_edges
+	sr=arcpy.Describe(nodes).SpatialReference.ExportToString()
+	if in_memory:
+		feature_class=arcpy.management.CreateFeatureclass("in_memory", output_edges, "POLYLINE",spatial_reference=sr)[0]
+	else:
+		fs=os.path.split(output_edges)
+		feature_class=arcpy.management.CreateFeatureclass(fs[0], fs[1], "POLYLINE",spatial_reference=sr)[0]
 	
+	arcpy.management.AddField(output_edges, "node_1", "LONG")
+	arcpy.management.AddField(output_edges, "node_2", "LONG")
+	arcpy.management.AddField(output_edges, "length", "DOUBLE")
+	
+	#绘制边线
+	points_count = len(positions)
+	for i in range(points_count):
+		for j in range(points_count):
+			if i==j:
+				continue
+			pi = arcpy.Point(positions[i][0],positions[i][1])
+			pj = arcpy.Point(positions[j][0],positions[j][1])
+			arr = arcpy.Array([pi,pj])
+			polyline = arcpy.Polyline(arr)
+			plen = polyline.length
+			if max_dist==0 or plen<=max_dist:
+				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","node_1","node_2","length"])
+				cursor.insertRow([polyline,i,j,plen])
+
+
+
+
+
+
 def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True,field_calc=lambda fs1,fs2:0.0,in_memory=True):
 	#获取节点坐标，保存在列表中
 	id_field_1=arcpy.ListFields(dataset_1)[0].name
