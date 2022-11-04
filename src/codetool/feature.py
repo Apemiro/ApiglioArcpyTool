@@ -62,9 +62,36 @@ def clear_feature(feature_name,fields=["Shape@"],criterion=lambda x:True):
 
 
 
-
-
-
+#apiglio.src.codetool.feature.listdict_to_line([{"x1":110.2,"y1":34.4,"x2":111.23,"y2":36.32,"testf":"d3wd"}],"x1","y1","x2","y2")
+#apiglio.src.codetool.feature.listdict_to_line(part_of,"subject_lng","subject_lat","object_lng","object_lat")
+def listdict_to_line(list_of_dictionary,x1,y1,x2,y2,dataset="temp_listdict_line_export",path="in_memory"):
+	example=list_of_dictionary[0]
+	example_key=example.keys()
+	try:
+		example_key.index(x1)
+		example_key.index(x2)
+		example_key.index(y1)
+		example_key.index(y2)
+	except:
+		raise Exception("one of x1,y1,x2,y2 field not found.")
+	filtered_fields=list(set(example_key)-set([x1,y1,x2,y2]))
+	arcpy.management.CreateFeatureclass(path,dataset,"POLYLINE")
+	output_edges = path + "/" + dataset
+	for field in filtered_fields:
+		arcpy.management.AddField(output_edges, field, "TEXT",field_length=100)
+	with arcpy.da.InsertCursor(path+"/"+dataset,["SHAPE@"]+filtered_fields) as cursor:
+		for dict_element in list_of_dictionary:
+			coord_x1 = dict_element[x1]
+			coord_y1 = dict_element[y1]
+			coord_x2 = dict_element[x2]
+			coord_y2 = dict_element[y2]
+			p1 = arcpy.Point(coord_x1,coord_y1)
+			p2 = arcpy.Point(coord_x2,coord_y2)
+			line = arcpy.Polyline(arcpy.Array([p1,p2]))
+			rows = [line]
+			for field in filtered_fields:
+				rows.append(dict_element[field])
+			cursor.insertRow(rows)
 
 
 

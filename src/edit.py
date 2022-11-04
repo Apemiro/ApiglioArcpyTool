@@ -112,7 +112,18 @@ def check_unique(dataset):
 	return(None)
 
 
-
+def EdgeToOD(dataset):
+	cursor=arcpy.da.UpdateCursor(dataset,["SHAPE@"])
+	for row in cursor:
+		geo=row[0]
+		if type(geo) == arcpy.geometries.Polyline:
+			arr=geo.getPart()[0]
+			row[0]=arcpy.Polyline(arcpy.Array([arr[0],arr[-1]]))
+		else:
+			print(type(geo))
+			raise Exception("错误的文件几何类型")
+		cursor.updateRow(row)
+	del row,cursor
 
 
 
