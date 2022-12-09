@@ -118,7 +118,8 @@ def EdgeToOD(dataset):
 		geo=row[0]
 		if type(geo) == arcpy.geometries.Polyline:
 			arr=geo.getPart()[0]
-			row[0]=arcpy.Polyline(arcpy.Array([arr[0],arr[-1]]))
+			if len(arr)>2:
+				row[0]=arcpy.Polyline(arcpy.Array([arr[0],arr[-1]]))
 		else:
 			print(type(geo))
 			raise Exception("错误的文件几何类型")

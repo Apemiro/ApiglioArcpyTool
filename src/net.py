@@ -112,7 +112,45 @@ def GenGeoNetworkByLength(nodes,output_edges,max_dist,in_memory=True):
 				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","node_1","node_2","length"])
 				cursor.insertRow([polyline,i,j,plen])
 
+def GenGeoNetworkByValue(nodes,output_edges,valfield,in_memory=True):
 
+	#获取节点坐标，保存在列表中
+	positions=[]
+	for row in arcpy.da.SearchCursor(nodes,["SHAPE@XY",valfield]):
+		positions.append(row[0:2])
+	del row
+	
+	#新建网络output_edges
+	sr=arcpy.Describe(nodes).SpatialReference.ExportToString()
+	if in_memory:
+		feature_class=arcpy.management.CreateFeatureclass("in_memory", output_edges, "POLYLINE",spatial_reference=sr)[0]
+	else:
+		fs=os.path.split(output_edges)
+		feature_class=arcpy.management.CreateFeatureclass(fs[0], fs[1], "POLYLINE",spatial_reference=sr)[0]
+	fs=list(filter(lambda x:x.name==valfield,arcpy.Describe(nodes).fields))
+	if fs==[]:
+		raise Exception("找不到字段"+valfield)
+	else:
+		fieldtype=fs[0].type
+	
+	
+	arcpy.management.AddField(output_edges, "node_1", "LONG")
+	arcpy.management.AddField(output_edges, "node_2", "LONG")
+	arcpy.management.AddField(output_edges, valfield, fieldtype)
+	
+	#绘制边线
+	points_count = len(positions)
+	for i in range(points_count):
+		for j in range(points_count):
+			if i==j or positions[i][1]<>positions[j][1]:
+				continue
+			pi = arcpy.Point(positions[i][0][0],positions[i][0][1])
+			pj = arcpy.Point(positions[j][0][0],positions[j][0][1])
+			val = positions[i][1]
+			arr = arcpy.Array([pi,pj])
+			polyline = arcpy.Polyline(arr)
+			cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","node_1","node_2",valfield])
+			cursor.insertRow([polyline,i,j,val])
 
 
 
