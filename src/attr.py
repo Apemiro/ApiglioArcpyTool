@@ -130,11 +130,38 @@ def XYGenerator(dataset,field_x,field_y):
 		xy=row.getValue("Shape").centroid
 		row.setValue(field_x.decode("utf8"),xy.X)
 		row.setValue(field_y.decode("utf8"),xy.Y)
-		
-		# xy=row.getValue("SHAPE@TRUECENTROID").centroid
-		# row.setValue(field_x.decode("utf8"),xy[0])
-		# row.setValue(field_y.decode("utf8"),xy[1])
-		
 		cursor.updateRow(row)
 	del row,cursor
-	
+
+#在照片转出的点要素基础上在targetpath目录中生成一个bat文件
+#运行bat文件可以将选中的图片点要素照片硬连接到此处
+def HardLinkGenerator(dataset,targetpath):
+	fields = arcpy.Describe(dataset).fields
+	field_names = list(map(lambda x:x.name,fields))
+	path_field_id = field_names.index("Path")
+	name_field_id = field_names.index("Name")
+	# 没有以上两个字段会报错
+	batch_here = targetpath+"/"+"_start_hard_link_.bat"
+	fout = open(batch_here,"w")
+	fout.write("setlocal")
+	cursor = arcpy.da.SearchCursor(dataset,["Path","Name"])
+	for row in cursor:
+		path_value = row[0]
+		name_value = row[1]
+		command = "mklink /H \""+name_value.encode("cp936")+"\" \""+path_value.encode("cp936")+"\"\n"
+		fout.write(command)
+	del row,cursor
+	fout.write("echo "+u"硬连接已完成。".encode("cp936")+"\n")
+	fout.write("pause")
+	fout.close()
+
+
+
+
+
+
+
+
+
+
+
