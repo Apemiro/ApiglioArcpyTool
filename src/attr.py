@@ -2,9 +2,19 @@
 import arcpy
 import arcpy.sa
 import arcpy.da
+import math
 
 
+def __has_field(dataset,field):
+	target_fields = filter(lambda x:x.name==field,arcpy.Describe(dataset).fields)
+	return len(target_fields)>=1
 
+def __field_type(dataset,field):
+	target_fields = filter(lambda x:x.name==field,arcpy.Describe(dataset).fields)
+	return target_fields[0].type
+
+def __geo_type(dataset):
+	return arcpy.Describe(dataset).shapeType
 
 #utf8_field这个参数名称有点问题
 def FieldStringReplace(dataset,field_name,old_pattern,new_pattern,utf8_field=True):
@@ -83,8 +93,72 @@ def ContainsRecorder(iden_dataset,record_field,region_dataset,idenitiy_field):
 		row[1]=comma
 		cursor.updateRow(row)
 	del row,cursor
+
+def __mean(func,list):
+	total = len(list)
+	acc = 0.0
+	for i in list:
+		acc += func(i)
+	return acc / total
+
+#
+#ContainsCounter('点要素','面要素','面统计字段')
+def ContainsCounter(point_dataset,polygon_dataset,counter_field):
+	if not __geo_type(point_dataset) == "Point":raise Exception("第1参数不是点要素")
+	if not __geo_type(polygon_dataset) == "Polygon":raise Exception("第2参数不是面要素")
+	if not __has_field(polygon_dataset,counter_field):raise Exception("第2参数没有目标字段")
+	if not __field_type(polygon_dataset,counter_field) == "Integer":raise Exception("目标字段不是整型")
 	
+	polygons = []
+	for row in arcpy.da.SearchCursor(polygon_dataset,["SHAPE@"]):
+		polygons.append(row[0])
+	del row
 	
+	min_x = arcpy.Describe(polygon_dataset).extent.XMin
+	max_x = arcpy.Describe(polygon_dataset).extent.XMax
+	min_y = arcpy.Describe(polygon_dataset).extent.YMin
+	max_y = arcpy.Describe(polygon_dataset).extent.YMax
+	tot_w = arcpy.Describe(polygon_dataset).extent.width
+	tot_h = arcpy.Describe(polygon_dataset).extent.height
+	mea_w = __mean(lambda x:x.extent.width,  polygons)
+	mea_h = __mean(lambda x:x.extent.height, polygons)
+	
+	x_index = [set() for i in range(int(math.ceil(float(tot_w) / mea_w))+1)]
+	y_index = [set() for i in range(int(math.ceil(float(tot_h) / mea_h))+1)]
+	count = len(polygons)
+	for row in range(count):
+		ext = polygons[row].extent
+		x_idx_min = int(math.ceil(float(ext.XMin - min_x) / mea_w))
+		x_idx_max = int(math.ceil(float(ext.XMax - min_x) / mea_w))
+		y_idx_min = int(math.ceil(float(ext.YMin - min_y) / mea_h))
+		y_idx_max = int(math.ceil(float(ext.YMax - min_y) / mea_h))
+		for xx in range(x_idx_min, x_idx_max + 1):
+			x_index[xx].add(row)
+		for yy in range(y_idx_min, y_idx_max + 1):
+			y_index[yy].add(row)
+	
+	point_counts = [0 for i in range(len(polygons))]
+	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@"]):
+		if row[0]==None:
+			continue
+		point_xy = row[0].centroid
+		x_idx = int(math.ceil(float(point_xy.X - min_x) / mea_w))
+		y_idx = int(math.ceil(float(point_xy.Y - min_y) / mea_h))
+		polygons_rough = x_index[x_idx].intersection(y_index[y_idx])
+		for polygon_idx in list(polygons_rough):
+			if polygons[polygon_idx].contains(row[0]):
+				point_counts[polygon_idx]+=1
+	del row
+	
+	cursor=arcpy.da.UpdateCursor(polygon_dataset,[counter_field])
+	polygon_idx=0
+	for row in cursor:
+		row[0]=point_counts[polygon_idx]
+		cursor.updateRow(row)
+		polygon_idx+=1
+	del row,cursor
+
+
 
 #utf8_field这个参数名称有点问题
 def FieldExtractor(dataset,field_name,utf8_field=True,key=lambda x:x):
@@ -112,7 +186,6 @@ def FieldLister(dataset,field_name,utf8_field=True,key=lambda x:x):
 	return ll
 
 
-import math
 def edge_angle(edge_dataset,field_name):
 	with arcpy.da.UpdateCursor(edge_dataset, ["SHAPE@",field_name]) as cursor:
 		for row in cursor:
