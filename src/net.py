@@ -215,10 +215,54 @@ def node_offset(node_dataset,x_offset,y_offset):
 			row[0]=pos
 			cursor.updateRow(row)
 
-	
-	
-	
-	
-	
-	
-	
+def __field_type(dataset,field):
+	target_fields = filter(lambda x:x.name==field,arcpy.Describe(dataset).fields)
+	return target_fields[0].type
+
+def __set_polyline_length(line,length):
+	points = line.getPart()[0]
+	origin = points[0]
+	deltax = points[1].X - points[0].X
+	deltay = points[1].Y - points[0].Y
+	orilen = line.length
+	new_x  = origin.X + deltax * float(length)/orilen
+	new_y  = origin.Y + deltay * float(length)/orilen
+	new_pt = arcpy.Point(new_x,new_y)
+	return arcpy.Polyline(arcpy.Array([origin,new_pt]))
+
+#从origin_coord放射到每一个点创建射线, 不规定长度时为两点间线段
+#apiglio.src.net.create_vectors("villageGene_20221209","temp",ori,"code")
+#field可以改成fields
+def create_vectors(point_dataset,line_dataset,origin,field,length=None,in_memory=True):
+	field_type=__field_type(point_dataset,field)
+	points_rec=[]
+	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@",field]):
+		points_rec.append(row)
+	del row
+	#新建line_dataset
+	sr=arcpy.Describe(point_dataset).SpatialReference.ExportToString()
+	if in_memory:
+		feature_class=arcpy.management.CreateFeatureclass("in_memory", line_dataset, "POLYLINE",spatial_reference=sr)[0]
+	else:
+		fs=os.path.split(line_dataset)
+		feature_class=arcpy.management.CreateFeatureclass(fs[0], fs[1], "POLYLINE",spatial_reference=sr)[0]
+	arcpy.AddField_management(line_dataset, field, field_type)
+	for point_rec in points_rec:
+		point = point_rec[0].firstPoint
+		value = point_rec[1]
+		line  = arcpy.Polyline(arcpy.Array([origin,point]))
+		if length != None:
+			line = __set_polyline_length(line,length)
+		cursor = arcpy.da.InsertCursor(line_dataset, ["SHAPE@",field])
+		cursor.insertRow([line,value])
+
+
+
+
+
+
+
+
+
+
+
