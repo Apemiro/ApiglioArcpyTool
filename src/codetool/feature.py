@@ -3,10 +3,12 @@
 
 import arcpy
 
+def __active_df_sr():
+	return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
 
 def to_list(dataset,field="SHAPE@"):
 	res=[]
-	cursor=arcpy.da.SearchCursor(dataset,[field])
+	cursor=arcpy.da.SearchCursor(dataset,[field],spatial_reference=__active_df_sr())
 	for row in cursor:
 		res.append(row[0])
 	del row,cursor
@@ -14,7 +16,7 @@ def to_list(dataset,field="SHAPE@"):
 
 def to_set(dataset,field="SHAPE@"):
 	res=set()
-	cursor=arcpy.da.SearchCursor(dataset,[field])
+	cursor=arcpy.da.SearchCursor(dataset,[field],spatial_reference=__active_df_sr())
 	for row in cursor:
 		res.add(row[0])
 	del row,cursor
