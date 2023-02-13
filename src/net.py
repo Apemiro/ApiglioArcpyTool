@@ -257,9 +257,53 @@ def create_vectors(point_dataset,line_dataset,origin,field,length=None,in_memory
 		cursor.insertRow([line,value])
 
 
-
-
-
+#计算点坐标分类排斥性
+def calc_exclusiveness(point_dataset,field,func=lambda x:x):
+	field_type=__field_type(point_dataset,field)
+	points_rec=[]
+	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@",field]):
+		points_rec.append([row[0],func(row[1])])
+	del row
+	class_dict = {}
+	for point_rec in points_rec:
+		point = point_rec[0].firstPoint
+		value = point_rec[1]
+		if class_dict.has_key(value):
+			class_dict[value].append(point)
+		else:
+			class_dict[value]=[point]
+	print class_dict.keys()
+	inner_distance = 0.0
+	outer_distance = 0.0
+	inner_count = 0
+	outer_count = 0
+	for key in class_dict.keys():
+		count = len(class_dict[key])
+		for i in range(count):
+			for j in range(i):
+				p1   = class_dict[key][i]
+				p2   = class_dict[key][j]
+				line = arcpy.Polyline(arcpy.Array([p1,p2]))
+				inner_distance+=line.length
+				inner_count+=1
+	key_count = len(class_dict.keys())
+	key_list  = class_dict.keys()[:]
+	for i in range(key_count):
+		for j in range(i):
+			i_count = len(class_dict[key_list[i]])
+			j_count = len(class_dict[key_list[j]])
+			for ii in range(i_count):
+				for jj in range(j_count):
+					p1   = class_dict[key_list[i]][ii]
+					p2   = class_dict[key_list[j]][jj]
+					line = arcpy.Polyline(arcpy.Array([p1,p2]))
+					outer_distance+=line.length
+					outer_count+=1
+	if inner_count*outer_count == 0:
+		return None
+	aver_inner = inner_distance/inner_count
+	aver_outer = outer_distance/outer_count
+	return aver_inner, aver_outer, aver_outer/aver_inner
 
 
 
