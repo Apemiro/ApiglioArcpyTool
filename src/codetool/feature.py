@@ -6,19 +6,37 @@ import arcpy
 def __active_df_sr():
 	return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
 
-def to_list(dataset,field="SHAPE@"):
+def to_list(dataset,field="SHAPE@",key=None):
 	res=[]
 	cursor=arcpy.da.SearchCursor(dataset,[field],spatial_reference=__active_df_sr())
+	if key==None:
+		key = lambda x:x
 	for row in cursor:
-		res.append(row[0])
+		res.append(key(row[0]))
 	del row,cursor
 	return res
 
-def to_set(dataset,field="SHAPE@"):
+def to_set(dataset,field="SHAPE@",key=None):
 	res=set()
 	cursor=arcpy.da.SearchCursor(dataset,[field],spatial_reference=__active_df_sr())
+	if key==None:
+		key = lambda x:x
 	for row in cursor:
-		res.add(row[0])
+		res.add(key(row[0]))
+	del row,cursor
+	return res
+
+def to_dict(dataset,field="SHAPE@"):
+	res=[]
+	fields = arcpy.Describe(dataset).fields
+	field_names = list(map(lambda x:x.name,fields))
+	field_count = len(fields)
+	cursor = arcpy.da.SearchCursor(dataset, field_names+["SHAPE@"], spatial_reference=__active_df_sr())
+	for row in cursor:
+		res.append({})
+		for fs in range(field_count):
+			res[-1][field_names[fs]]=row[fs]
+		res[-1]["SHAPE@"]=row[field_count]
 	del row,cursor
 	return res
 
