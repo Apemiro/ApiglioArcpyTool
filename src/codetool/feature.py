@@ -6,6 +6,14 @@ import arcpy
 def __active_df_sr():
 	return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
 
+def __sr_arg(spatial_reference):
+	if spatial_reference == True:
+		return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
+	elif spatial_reference == None:
+		return None
+	else:
+		return spatial_reference
+
 def to_list(dataset,field="SHAPE@",key=None):
 	res=[]
 	cursor=arcpy.da.SearchCursor(dataset,[field],spatial_reference=__active_df_sr())
@@ -41,21 +49,15 @@ def to_dict(dataset,field="SHAPE@"):
 	return res
 
 def shape_to_feature(geo,name,path="in_memory"):
-	if geo.__class__==arcpy.PointGeometry:
-		pass
-	elif geo.__class__==arcpy.Point:
-		pass
-	elif geo.__class__==arcpy.Polyline:
-		pass
-	elif geo.__class__==arcpy.Polygon:
+	if geo.__class__ in [arcpy.PointGeometry, arcpy.Point, arcpy.Polyline, arcpy.Polygon]:
 		pass
 	else:
 		raise Exception("无效的图形参数")
-	if geo.firstPoint.Z<>None:
+	if geo.firstPoint.Z != None:
 		zz="Enabled"
 	else:
 		zz="Disabled"
-	if geo.firstPoint.M<>None:
+	if geo.firstPoint.M != None:
 		mm="Enabled"
 	else:
 		mm="Disabled"
@@ -64,9 +66,12 @@ def shape_to_feature(geo,name,path="in_memory"):
 	cursor.insertRow([geo])
 	del cursor
 
-def to_file(list_of_geometry,dataset="temp_list_export",path="in_memory"):
-	shape_type=list_of_geometry[0].type.upper()
-	arcpy.management.CreateFeatureclass(path,dataset,shape_type)
+def to_file(list_of_geometry,dataset="temp_list_export",path="in_memory",spatial_reference=None):
+	ty = list_of_geometry[0].type.upper()
+	sr = __sr_arg(spatial_reference)
+	hz = "Disabled" if list_of_geometry[0].firstPoint.Z == None else "Enabled"
+	hm = "Disabled" if list_of_geometry[0].firstPoint.M == None else "Enabled"
+	arcpy.management.CreateFeatureclass(path,dataset,ty,spatial_reference=sr,has_z=hz,has_m=hm)
 	with arcpy.da.InsertCursor(path+"/"+dataset,["SHAPE@"]) as cursor:
 		for shape in list_of_geometry:
 			cursor.insertRow([shape])

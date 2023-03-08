@@ -174,8 +174,6 @@ def to_polygon(geo):
 
 
 
-
-
 def random_point(data_frame=None,hasZ=False,hasM=False):
 	if data_frame == None:
 		x_min = 0.0
@@ -183,6 +181,8 @@ def random_point(data_frame=None,hasZ=False,hasM=False):
 		x_max = 1.0
 		y_max = 1.0
 	else:
+		if data_frame == True:
+			data_frame = arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame
 		y_min = data_frame.extent.YMin
 		x_min = data_frame.extent.XMin
 		y_max = data_frame.extent.YMax
