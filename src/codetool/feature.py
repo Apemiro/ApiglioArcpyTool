@@ -83,8 +83,9 @@ def clear_feature(feature_name,fields=["Shape@"],criterion=lambda x:True):
 			if criterion(row):
 				cursor.deleteRow()
 
-
-
+def select_feature(in_feature,out_feature,fields=["Shape@"],criterion=lambda x:False):
+	arcpy.management.CopyFeatures(in_feature,out_feature)
+	clear_feature(out_feature,fields,criterion)
 
 
 #apiglio.src.codetool.feature.listdict_to_line([{"x1":110.2,"y1":34.4,"x2":111.23,"y2":36.32,"testf":"d3wd"}],"x1","y1","x2","y2")
