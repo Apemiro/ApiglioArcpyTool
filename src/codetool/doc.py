@@ -13,6 +13,7 @@ def cmxd():
 def lyrs():
 	return arcpy.mapping.ListLayers(cmxd(),"*")
 	
+# 类似于数据驱动页面，后期增加新功能
 def export_by_features(path,feature,field=None):
 	fea=to_list(feature)
 	fcount=len(fea)
