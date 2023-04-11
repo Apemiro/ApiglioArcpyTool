@@ -167,10 +167,45 @@ def add_layer(filename,data_frame_name="",position="TOP"):
 def del_layer(layername):
 	raise Exception("unimplemented")
 
+def pan2S(step=1.0):
+	dfm = active_df()
+	print(dfm.extent)
+	ll = dfm.extent.lowerLeft
+	ur = dfm.extent.upperRight
+	dist = (ur.Y - ll.Y) * step
+	ext = arcpy.Extent(ll.X, ll.Y + dist, ur.X, ur.Y + dist)
+	print(ext)
+	dfm.panToExtent(ext)
 
+def pan2N(step=1.0):
+	dfm = active_df()
+	print(dfm.extent)
+	ll = dfm.extent.lowerLeft
+	ur = dfm.extent.upperRight
+	dist = (ur.Y - ll.Y) * step
+	ext = arcpy.Extent(ll.X, ll.Y - dist, ur.X, ur.Y - dist)
+	print(ext)
+	dfm.panToExtent(ext)
 
+def pan2E(step=1.0):
+	dfm = active_df()
+	print(dfm.extent)
+	ll = dfm.extent.lowerLeft
+	ur = dfm.extent.upperRight
+	dist = (ur.X - ll.X) * step
+	ext = arcpy.Extent(ll.X + dist, ll.Y, ur.X + dist, ur.Y)
+	print(ext)
+	dfm.panToExtent(ext)
 
-
+def pan2W(step=1.0):
+	dfm = active_df()
+	print(dfm.extent)
+	ll = dfm.extent.lowerLeft
+	ur = dfm.extent.upperRight
+	dist = (ur.X - ll.X) * step
+	ext = arcpy.Extent(ll.X - dist, ll.Y, ur.X - dist, ur.Y)
+	print(ext)
+	dfm.panToExtent(ext)
 
 
 
