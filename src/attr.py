@@ -197,8 +197,11 @@ def edge_angle(edge_dataset,field_name):
 			cursor.updateRow(row)
 	
 	
-def XYGenerator(dataset,field_x,field_y):
-	cursor=arcpy.UpdateCursor(dataset)
+def XYGenerator(dataset,field_x,field_y,sr=None):
+	if sr==None:
+		cursor=arcpy.UpdateCursor(dataset)
+	else:
+		cursor=arcpy.UpdateCursor(dataset,spatial_reference=sr)
 	for row in cursor:
 		xy=row.getValue("Shape").centroid
 		row.setValue(field_x.decode("utf8"),xy.X)
