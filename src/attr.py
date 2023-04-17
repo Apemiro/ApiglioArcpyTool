@@ -101,16 +101,28 @@ def __mean(func,list):
 		acc += func(i)
 	return acc / total
 
-#
+def __active_df_sr():
+	return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
+
+def __sr_arg(spatial_reference):
+	if spatial_reference == True:
+		return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
+	elif spatial_reference == None:
+		return None
+	else:
+		return spatial_reference
+
 #ContainsCounter('点要素','面要素','面统计字段')
-def ContainsCounter(point_dataset,polygon_dataset,counter_field):
+def ContainsCounter(point_dataset,polygon_dataset,counter_field,spatial_reference=True):
 	if not __geo_type(point_dataset) == "Point":raise Exception("第1参数不是点要素")
 	if not __geo_type(polygon_dataset) == "Polygon":raise Exception("第2参数不是面要素")
 	if not __has_field(polygon_dataset,counter_field):raise Exception("第2参数没有目标字段")
 	if not __field_type(polygon_dataset,counter_field) == "Integer":raise Exception("目标字段不是整型")
 	
+	sr = __sr_arg(spatial_reference)
+	
 	polygons = []
-	for row in arcpy.da.SearchCursor(polygon_dataset,["SHAPE@"]):
+	for row in arcpy.da.SearchCursor(polygon_dataset,["SHAPE@"],spatial_reference=sr):
 		polygons.append(row[0])
 	del row
 	
@@ -138,7 +150,7 @@ def ContainsCounter(point_dataset,polygon_dataset,counter_field):
 			y_index[yy].add(row)
 	
 	point_counts = [0 for i in range(len(polygons))]
-	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@"]):
+	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@"],spatial_reference=sr):
 		if row[0]==None:
 			continue
 		point_xy = row[0].centroid
