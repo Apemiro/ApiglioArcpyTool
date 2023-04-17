@@ -130,6 +130,7 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	cursor = arcpy.da.InsertCursor(dataset, ["SHAPE@"]+fields_valid)
 	for fea in list_of_dict:
 		row=list(row_template)
+		row[0]=fea["SHAPE@"]
 		for key in fea.keys():
 			index = fields_index.get(key)
 			if index != None:
