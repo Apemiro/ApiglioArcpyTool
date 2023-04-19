@@ -71,12 +71,12 @@ def __build_fine_grid_polygon(x,y,width,height,sr):
 	arr = arcpy.Array([p1,p2,p3,p4])
 	return arcpy.Polygon(arr,sr)
 
-def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid"):
+def build_fine_grid(width,height,pathname="in_memory",data_name="fine_grid",limitation=True):
 	ddf=adf.active_df()
 	ext=ddf.extent
 	if not adf.is_gcs:
 		raise Exception("仅支持地理坐标系")
-	if ext.width>0.5 or ext.height>0.5:
+	if limitation and (ext.width / width > 200 or ext.height / height > 200):
 		raise Exception("格网过大")
 	ll=ext.lowerLeft.X
 	rr=ext.upperRight.X
@@ -124,16 +124,16 @@ def build_related_grid(xy,data_name,offset=250):
 	polygon = arcpy.Polygon(arr)
 	cursor = arcpy.da.InsertCursor(data_name, ["SHAPE@"])
 	cursor.insertRow([polygon])
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
+
+
 
