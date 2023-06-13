@@ -31,6 +31,15 @@ def filter(table,key_header,condition=lambda x:x):
 	return res
 
 # 返回字段列表
+def fields(table):
+	res=set([])
+	for row in table:
+		res = res.union(set(row.keys()))
+	res = list(res)
+	res.sort()
+	return res
+
+# 返回字段值列表
 def values(table,key_header):
 	res=[]
 	for row in table:

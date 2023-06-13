@@ -77,15 +77,17 @@ def to_file(list_of_geometry,dataset="temp_list_export",path="in_memory",spatial
 			cursor.insertRow([shape])
 
 def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",spatial_reference=None):
-	fields = []
-	fields_type = []
+	#fields = []
+	#fields_type = []
+	field_infos = []
 	fields_set = set([])
 	for fea in list_of_dict:
 		for fd in fea.keys():
 			if not fd in fields_set:
 				fields_set.add(fd)
-				fields.append(fd)
-				fields_type.append(type(fea[fd]))
+				#fields.append(fd)
+				#fields_type.append(type(fea[fd]))
+				field_infos.append({"name":fd,"type":type(fea[fd])})
 	
 	# 检查第一行是否有图形字段
 	first_one = list_of_dict[0]
@@ -96,17 +98,23 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	hz = "Disabled" if first_one["SHAPE@"].firstPoint.Z == None else "Enabled"
 	hm = "Disabled" if first_one["SHAPE@"].firstPoint.M == None else "Enabled"
 	arcpy.management.CreateFeatureclass(path,dataset,ty,spatial_reference=sr,has_z=hz,has_m=hm)
-	geo_index = fields.index("SHAPE@")
-	fields.pop(geo_index)
-	fields_type.pop(geo_index)
+	geo_index = [x["name"] for x in field_infos].index("SHAPE@")
+	#fields.pop(geo_index)
+	#fields_type.pop(geo_index)
+	field_infos.pop(geo_index)
+	geo_index = [x["name"] for x in field_infos].index("Shape")
+	field_infos.pop(geo_index)
+	field_infos.sort(key=lambda x:x["name"])
 	
 	# 创建字段并排除类型不满足要求的字段
 	fields_valid = []
 	fields_index = {}
 	row_template = []
-	for idx in range(len(fields)):
-		field_name = fields[idx]
-		field_type = fields_type[idx]
+	for idx in range(len(field_infos)):
+		#field_name = fields[idx]
+		#field_type = fields_type[idx]
+		field_name = field_infos[idx]["name"]
+		field_type = field_infos[idx]["type"]
 		if field_type in [int]:
 			arcpy.management.AddField(dataset,field_name,"LONG")
 			fields_valid.append(field_name)
