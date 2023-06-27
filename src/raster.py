@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import arcpy
 import numpy
+import math
 
 def con(condition,t_value,f_value):
 	if condition:
@@ -32,22 +33,41 @@ def raster_ca(dataset,output,neighbor_dist=1,ca_func=lambda arr:arr[1,1],no_data
 	new_raster = arcpy.NumPyArrayToRaster(new_array)
 	new_raster.save(output)
 
+#给定像元坐标，返回对应的地理坐标
+def uv_to_xy(raster,uv):
+	ll = arcpy.Describe(raster).extent.XMin
+	rr = arcpy.Describe(raster).extent.XMax
+	bb = arcpy.Describe(raster).extent.YMin
+	tt = arcpy.Describe(raster).extent.YMax
+	cw = arcpy.Describe(raster).meanCellWidth
+	ch = arcpy.Describe(raster).meanCellHeight
+	cx = arcpy.Describe(raster).width
+	cy = arcpy.Describe(raster).height
+	u = uv[0]
+	v = uv[1]
+	if u>=cx or v>=cy or u<0 or v<0:
+		return None
+	x = ll + (u+0.5)*cw
+	y = tt - (v+0.5)*ch
+	return [x,y]
 
-def raster_xy(raster,xy):
-	ll=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","LEFT")
-	rr=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","RIGHT")
-	tt=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","TOP")
-	bb=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","BOTTOM")
-	cx=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","CELLSIZEX")
-	cy=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","CELLSIZEY")
-	count_col=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","COLUMNCOUNT")
-	count_row=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","ROWCOUNT")
-	count_band=arcpy.management.GetRasterProperties("Tsinan_dem_ave_5_prj.tif","BANDCOUNT")
-
-
-
-
-
+#给定地理坐标，返回对应的像元坐标
+def xy_to_uv(raster,xy):
+	ll = arcpy.Describe(raster).extent.XMin
+	rr = arcpy.Describe(raster).extent.XMax
+	bb = arcpy.Describe(raster).extent.YMin
+	tt = arcpy.Describe(raster).extent.YMax
+	cw = arcpy.Describe(raster).meanCellWidth
+	ch = arcpy.Describe(raster).meanCellHeight
+	cx = arcpy.Describe(raster).width
+	cy = arcpy.Describe(raster).height
+	x = xy[0]
+	y = xy[1]
+	if x<ll or x>rr or y<bb or y>tt:
+		return None
+	u = math.trunc((x-ll)/float(cw))
+	v = math.trunc((tt-y)/float(ch))
+	return [u,v]
 
 
 
