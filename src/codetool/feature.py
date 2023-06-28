@@ -98,12 +98,16 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	hz = "Disabled" if first_one["SHAPE@"].firstPoint.Z == None else "Enabled"
 	hm = "Disabled" if first_one["SHAPE@"].firstPoint.M == None else "Enabled"
 	arcpy.management.CreateFeatureclass(path,dataset,ty,spatial_reference=sr,has_z=hz,has_m=hm)
-	geo_index = [x["name"] for x in field_infos].index("SHAPE@")
-	#fields.pop(geo_index)
-	#fields_type.pop(geo_index)
-	field_infos.pop(geo_index)
-	geo_index = [x["name"] for x in field_infos].index("Shape")
-	field_infos.pop(geo_index)
+	try:
+		geo_index = [x["name"] for x in field_infos].index("SHAPE@")
+		field_infos.pop(geo_index)
+	except:
+		print("SHAPE@字段缺失")
+	try:
+		geo_index = [x["name"] for x in field_infos].index("Shape")
+		field_infos.pop(geo_index)
+	except:
+		print("Shape字段缺失")
 	field_infos.sort(key=lambda x:x["name"])
 	
 	# 创建字段并排除类型不满足要求的字段
