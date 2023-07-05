@@ -4,6 +4,7 @@ import arcpy.sa
 import arcpy.da
 import os
 import os.path
+import scipy.spatial
 
 
 #Adjacent2GeoNetwork(0,0,"F:/temp/test.txt",0)
@@ -193,8 +194,53 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 			if criterion(r1[2:],r2[2:],polyline):
 				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","length","node_1","node_2","calc"])
 				cursor.insertRow([polyline,polyline.length,id_1,id_2,field_calc(r1[2:],r2[2:])])
+
+def Delaunay(node_dataset,id_field,out_face_dataset,vertice_type="SET",in_memory=True):
+	pts = []
+	ids = []
+	for row in arcpy.da.SearchCursor(node_dataset,["SHAPE@",id_field]):
+		pos = row[0].firstPoint
+		pts.append([pos.X,pos.Y])
+		ids.append(row[1])
+	del row
+	dly = scipy.spatial.Delaunay(pts)
+	polygons = dly.simplices
+	pgs = [arcpy.Polygon(arcpy.Array([arcpy.Point(*pts[x]) for x in simp])) for simp in polygons]
+	idf = [set([ids[x] for x in simp]) for simp in polygons]
 	
+	sr = arcpy.Describe(node_dataset).SpatialReference.ExportToString()
+	if in_memory:
+		feature_class = arcpy.management.CreateFeatureclass("in_memory", out_face_dataset, "POLYGON",spatial_reference=sr)[0]
+	else:
+		fs=os.path.split(out_face_dataset)
+		feature_class = arcpy.management.CreateFeatureclass(fs[0], fs[1], "POLYGON",spatial_reference=sr)[0]
 	
+	if vertice_type.lower()=="set":
+		arcpy.AddField_management(out_face_dataset, "vertices", "TEXT", 255)
+		cursor = arcpy.da.InsertCursor(out_face_dataset, ["SHAPE@","vertices"])
+		for index in range(len(pgs)):
+			f = pgs[index]
+			s = idf[index]
+			cursor.insertRow([f,str(s)])
+	else:
+		arcpy.AddField_management(out_face_dataset, "vert_1", "LONG")
+		arcpy.AddField_management(out_face_dataset, "vert_2", "LONG")
+		arcpy.AddField_management(out_face_dataset, "vert_3", "LONG")
+		cursor = arcpy.da.InsertCursor(out_face_dataset, ["SHAPE@","vert_1","vert_2","vert_3"])
+		for index in range(len(pgs)):
+			f = pgs[index]
+			s = list(idf[index])
+			cursor.insertRow([f]+s)
+
+
+
+
+
+
+
+
+
+
 
 
 def CostDistPath(nodes,cost_raster,out_edges):
