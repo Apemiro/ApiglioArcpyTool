@@ -352,6 +352,49 @@ def calc_exclusiveness(point_dataset,field,func=lambda x:x):
 	return aver_inner, aver_outer, aver_outer/aver_inner
 
 
+#计算点要素空间距离并返回二维数组
+def calc_geodistance_point(point_dataset):
+	points = []
+	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@"]):
+		points.append(row[0])
+	del row
+	res = []
+	cnt = len(points)
+	#矩阵左下部分赋值
+	for i in range(cnt):
+		row_res = []
+		for j in range(i):
+			row_res.append(points[i].distanceTo(points[j]))
+		res.append(row_res)
+	#矩阵对角线赋值
+	for i in range(cnt):
+		res[i].append(0.0)
+	#矩阵右上部分赋值
+	for i in range(cnt):
+		for j in range(i+1,cnt):
+			res[i].append(res[j][i])
+	return res
+
+
+#计算点要素属性距离并返回二维数组
+def calc_fielddistance_point(point_dataset, field_name, type_exchange=lambda x:float(x), relationship=lambda x,y:1.0/(a-b)**2):
+	values = []
+	for row in arcpy.da.SearchCursor(point_dataset,[field_name]):
+		values.append(type_exchange(row[0]))
+	del row
+	res = []
+	cnt = len(values)
+	#矩阵左下部分和对角线赋值
+	for i in range(cnt):
+		row_res = []
+		for j in range(i+1):
+			row_res.append(relationship(values[i],values[j]))
+		res.append(row_res)
+	#矩阵右上部分赋值
+	for i in range(cnt):
+		for j in range(i+1,cnt):
+			res[i].append(res[j][i])
+	return res
 
 
 
