@@ -233,11 +233,16 @@ def Delaunay(node_dataset,id_field,out_face_dataset,vertice_type="SET",in_memory
 			cursor.insertRow([f]+s)
 
 
-
-
-
-
-
+#在Delaunay三角形vertices字段的基础上统计类型
+#class_dict = {1:1, 2:1, 3:2, 4:2, 5:1, 6:3 ... }
+#key默认参数意义：端点值一致时返回1，否则返回0
+def Delaunay_stat(delaunay_dataset,vertices_field,stat_field,class_dict,key=lambda s,d:int(all([d.get(x)==d.get(list(s)[0]) for x in s]))):
+	cursor = arcpy.da.UpdateCursor(delaunay_dataset,[vertices_field,stat_field])
+	for row in cursor:
+		verts  = eval(row[0])
+		row[1] = key(verts,class_dict)
+		cursor.updateRow(row)
+	del row, cursor
 
 
 
