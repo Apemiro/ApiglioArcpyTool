@@ -197,6 +197,13 @@ def FieldLister(dataset,field_name,utf8_field=True,key=lambda x:x):
 	del row,cursor
 	return ll
 
+def FieldDicter(datatab, key_field, value_field):
+	res={}
+	cursor = arcpy.da.SearchCursor(datatab,[key_field,value_field])
+	for row in cursor:
+		res[row[0]]=row[1]
+	del row,cursor
+	return res
 
 def edge_angle(edge_dataset,field_name):
 	with arcpy.da.UpdateCursor(edge_dataset, ["SHAPE@",field_name]) as cursor:
