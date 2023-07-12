@@ -42,6 +42,7 @@ def Adjacent2GeoNetwork(nodes,id_field,adjacent_matrix,output_edges,max_dist=0,c
 	positions=[]
 	for row in arcpy.da.SearchCursor(nodes,[id_field,"SHAPE@XY"]):
 		positions.append(row)
+	del row
 	
 	#新建网络output_edges
 	if in_memory:
@@ -83,6 +84,7 @@ def GenGeoNetworkByLength(nodes,output_edges,max_dist,in_memory=True):
 	positions=[]
 	for row in arcpy.da.SearchCursor(nodes,["SHAPE@XY"]):
 		positions.append(row[0])
+	del row
 	
 	#新建网络output_edges
 	sr=arcpy.Describe(nodes).SpatialReference.ExportToString()
@@ -117,6 +119,7 @@ def GenGeoNetworkByValue(nodes,output_edges,valfield,in_memory=True):
 	positions=[]
 	for row in arcpy.da.SearchCursor(nodes,["SHAPE@XY",valfield]):
 		positions.append(row[0:2])
+	del row
 	
 	#新建网络output_edges
 	sr=arcpy.Describe(nodes).SpatialReference.ExportToString()
@@ -160,9 +163,11 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 	pos_1=[]
 	for row in arcpy.da.SearchCursor(dataset_1,[id_field_1,"SHAPE@"]+fields_1):
 		pos_1.append(row)
+	del row
 	pos_2=[]
 	for row in arcpy.da.SearchCursor(dataset_2,[id_field_2,"SHAPE@"]+fields_2):
 		pos_2.append(row)
+	del row
 	
 	#新建网络output_edges
 	if in_memory:
@@ -197,6 +202,7 @@ def Delaunay(node_dataset,id_field,out_face_dataset,vertice_type="SET",in_memory
 		pos = row[0].firstPoint
 		pts.append([pos.X,pos.Y])
 		ids.append(row[1])
+	del row
 	dly = scipy.spatial.Delaunay(pts)
 	polygons = dly.simplices
 	pgs = [arcpy.Polygon(arcpy.Array([arcpy.Point(*pts[x]) for x in simp])) for simp in polygons]
@@ -236,7 +242,7 @@ def Delaunay_stat(delaunay_dataset,vertices_field,stat_field,class_dict,key=lamb
 		verts  = eval(row[0])
 		row[1] = key(verts,class_dict)
 		cursor.updateRow(row)
-	del cursor
+	del row, cursor
 
 
 
@@ -283,6 +289,7 @@ def create_vectors(point_dataset,line_dataset,origin,field,length=None,in_memory
 	points_rec=[]
 	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@",field]):
 		points_rec.append(row)
+	del row
 	#新建line_dataset
 	sr=arcpy.Describe(point_dataset).SpatialReference.ExportToString()
 	if in_memory:
@@ -307,6 +314,7 @@ def calc_exclusiveness(point_dataset,field,func=lambda x:x):
 	points_rec=[]
 	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@",field]):
 		points_rec.append([row[0],func(row[1])])
+	del row
 	class_dict = {}
 	for point_rec in points_rec:
 		point = point_rec[0].firstPoint
@@ -354,6 +362,7 @@ def calc_geodistance_point(point_dataset):
 	points = []
 	for row in arcpy.da.SearchCursor(point_dataset,["SHAPE@"]):
 		points.append(row[0])
+	del row
 	res = []
 	cnt = len(points)
 	#矩阵左下部分赋值
@@ -377,6 +386,7 @@ def calc_fielddistance_point(point_dataset, field_name, type_exchange=lambda x:f
 	values = []
 	for row in arcpy.da.SearchCursor(point_dataset,[field_name]):
 		values.append(type_exchange(row[0]))
+	del row
 	res = []
 	cnt = len(values)
 	#矩阵左下部分和对角线赋值
