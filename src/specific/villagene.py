@@ -44,7 +44,11 @@ def village_comprehensive_relationship(points, fields, out_csv, dist_base, phi):
 		f.write("\n")
 	f.close()
 
-def village_comprehensive_hca(points, fields, out_fig, dist_base, phi, label_field=None, ngroup=None, out_field=None):
+def hca_warning_func(x):
+	print(x)
+
+# out_fields = [(ngroup, out_field), ...]
+def village_comprehensive_hca(points, fields, out_fig, dist_base, phi, label_field=None, out_fields=None, warning_func=hca_warning_func):
 	distance = net.calc_geodistance_point(points)
 	func = lambda d:math.exp(math.log(10)*d/-dist_base)
 	dist_std = [[func(cell) for cell in row] for row in distance]
@@ -56,23 +60,32 @@ def village_comprehensive_hca(points, fields, out_fig, dist_base, phi, label_fie
 		labellist = range(1,count+1)
 	else:
 		labellist = codetool.feature.to_list(points, label_field)
-	plt.figure(figsize=[20,8])
+	fig = plt.figure(figsize=[20,8])
 	hier.dendrogram(hca,labels=labellist)
-	plt.savefig(out_fig,dpi=800)
-	plt.clf()
-	if ngroup != None and out_field != None:
-		division = dendrogram_division_by_ngroup(hca,ngroup)
-		identify = {}
-		for idx,nodes in enumerate(division):
-			for node in nodes:
-				identify[node]=idx+1
-		acc = 0
-		cursor = arcpy.da.UpdateCursor(points,[out_field])
-		for row in cursor:
-			row[0] = identify.get(acc)
-			cursor.updateRow(row)
-			acc += 1
-		del cursor
+	fig.savefig(out_fig,dpi=800)
+	fig.clf()
+	plt.close()
+	fieldnames = [x.name for x in arcpy.Describe(points).fields]
+	if out_fields != None:
+		for ngroup, out_field in out_fields:
+			try:
+				division = dendrogram_division_by_ngroup(hca,ngroup)
+				identify = {}
+				for idx,nodes in enumerate(division):
+					for node in nodes:
+						identify[node] = idx+1
+				acc = 0
+				if not out_field in fieldnames:
+					arcpy.management.AddField(points, out_field, "LONG")
+					fieldnames.append(out_field)
+				cursor = arcpy.da.UpdateCursor(points,[out_field])
+				for row in cursor:
+					row[0] = identify.get(acc)
+					cursor.updateRow(row)
+					acc += 1
+				del cursor
+			except:
+				warning_func("无法将层次聚类结果分为"+str(ngroup)+"类，未输出结果。")
 
 # 几何级数划分
 def geometric_rank(seq,ngroup,ratio):
@@ -114,7 +127,6 @@ def __recur_cluster(id,dict_of_cluster,used_cluster):
 	n1 = clu["nodes"][0]
 	n2 = clu["nodes"][1]
 	return __recur_cluster(n1,dict_of_cluster,used_cluster)+__recur_cluster(n2,dict_of_cluster,used_cluster)
-		
 
 # 根据level划分树状图
 def dendrogram_division_by_level(dendrogram,level):
