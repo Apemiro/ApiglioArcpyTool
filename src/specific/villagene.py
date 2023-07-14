@@ -156,3 +156,77 @@ def dendrogram_division_by_ngroup(dendrogram,ngroup):
 	level = dendrogram[-ngroup][2]
 	return dendrogram_division_by_level(dendrogram,level)
 
+def __cmap(length):
+	# colors = ["red","yellow","green","cyan","violet"]
+	# colors = ["blue","green","lime","cyan"]
+	h = 0.75
+	l = 0.25
+	colors = [(h,l,l),(h,h,l),(l,h,l),(l,h,h),(l,l,h),(h,l,h)]
+	return colors[:length]
+
+# 分组统计基因类型并绘制饼图
+# 写的真臭
+def grouped_gene(points, gene_field, grouped_field, out_img, ext=".png"):
+	list_of_dict = codetool.feature.to_dict(points)
+	tmplist = []
+	for point in list_of_dict:
+		genome = set(point[gene_field].replace(" ","").split("-"))
+		if "" in genome:
+			genome.remove("")
+		tmplist.append((point[grouped_field],genome))
+	tmpdict = {}
+	for group, gene in tmplist:
+		if group in tmpdict:
+			tmpdict[group].append(gene)
+		else:
+			tmpdict[group] = []
+	proto_entries = ["L1","L2","L3","S1","S2","S3","B1","B2","B3","B4","B5","B6","B7","I1","I2","I3"]
+	ncol = 5
+	nrow = int(math.ceil(len(proto_entries) / float(ncol)))
+	groups = tmpdict.keys()
+	fig_list = []
+	for grp in groups:
+		fig = plt.figure()
+		ino = 1
+		for entry in proto_entries:
+			plt.subplot(nrow, ncol, ino)
+			plt.title(entry)
+			protos = [entry+str(x) for x in range(1,5)]
+			stat = {}
+			void = 0
+			for proto in protos:
+				stat[proto]=0
+			for gene in tmpdict[grp]:
+				all_void = True
+				for proto in protos:
+					if proto in gene:
+						all_void = False
+						stat[proto]+=1
+				if all_void:
+					void+=1
+			data = stat.items()
+			data = list(filter(lambda x:x[1]>0,data))
+			data.sort(key=lambda x:x[1],reverse=True)
+			_x = [x[1] for x in data]
+			_labels = [x[0] for x in data]
+			_colors = __cmap(len(data))
+			if void>0:
+				_x = _x+[void]
+				_labels = _labels+[""]
+				_colors = _colors+["gray"]
+			plt.pie(_x, labels=_labels, wedgeprops={"width":0.3,"edgecolor":"white"}, radius=0.7, colors=_colors)
+			ino += 1
+		fig.suptitle("Group #"+str(grp))
+		fig.savefig(out_img+str(grp)+ext)
+		fig.clf()
+		plt.close('all')
+
+
+
+
+
+
+
+
+
+
