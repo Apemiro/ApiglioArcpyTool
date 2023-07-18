@@ -57,6 +57,17 @@ def counter(list_value):
 			res[element]=1
 	return(res)
 
+# 按照条件分类
+def group_by(table, key):
+	res={}
+	for row in table:
+		grouped_value = key(row)
+		if grouped_value in res.keys():
+			res[grouped_value].append(row)
+		else:
+			res[grouped_value]=[row]
+	return res
+
 '''
 
 sys.path.append("k:/python")

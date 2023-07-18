@@ -8,9 +8,11 @@ import matplotlib.pyplot as plt
 import math
 import os.path
 import sys
+import gc
 sys.path.append(os.path.split(__file__)[0]+"/..")
 import net
 import codetool.feature
+import codetool.dicts
 
 
 def _decode_LSBI_(lsbi):
@@ -220,13 +222,24 @@ def grouped_gene(points, gene_field, grouped_field, out_img, ext=".png"):
 		fig.savefig(out_img+str(grp)+ext)
 		fig.clf()
 		plt.close('all')
+		gc.collect()
 
 
-
-
-
-
-
-
+# 分组统计基因类型并输出事件图表
+def grouped_eventplot(points, value_field, grouped_field, out_img, ext=".png"):
+	list_of_dict = codetool.feature.to_dict(points)
+	dict_of_listdict = codetool.dicts.group_by(list_of_dict,lambda x:x.get(grouped_field))
+	groups = dict_of_listdict.keys()
+	grplen = len(groups)
+	fig = plt.figure()
+	data = [[x.get(value_field) for x in dict_of_listdict[key]] for key in groups]
+	plt.eventplot(data, orientation="vertical", linewidth=1.25)
+	plt.xticks(range(grplen),groups)
+	plt.xlabel(grouped_field)
+	plt.ylabel(value_field)
+	fig.savefig(out_img+ext)
+	fig.clf()
+	plt.close('all')
+	gc.collect()
 
 
