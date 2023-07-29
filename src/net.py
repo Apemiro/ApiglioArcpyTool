@@ -323,7 +323,7 @@ def calc_exclusiveness(point_dataset,field,func=lambda x:x):
 			class_dict[value].append(point)
 		else:
 			class_dict[value]=[point]
-	print class_dict.keys()
+	# print class_dict.keys()
 	inner_distance = 0.0
 	outer_distance = 0.0
 	inner_count = 0
