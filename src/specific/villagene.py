@@ -4,7 +4,9 @@
 import arcpy
 import numpy
 import scipy.cluster.hierarchy as hier
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.colors as mpc
 import math
 import os.path
 import sys
@@ -82,12 +84,15 @@ def village_comprehensive_hca(points, fields, out_fig, dist_base, phi, label_fie
 					fieldnames.append(out_field)
 				cursor = arcpy.da.UpdateCursor(points,[out_field])
 				for row in cursor:
-					row[0] = identify.get(acc)
-					cursor.updateRow(row)
+					value = identify.get(acc)
+					if value != None:
+						cursor.updateRow([value])
 					acc += 1
 				del cursor
-			except:
-				warning_func("无法将层次聚类结果分为"+str(ngroup)+"类，未输出结果。")
+			except Exception, info:
+				warning_func("无法将层次聚类结果分为"+str(ngroup)+"类，未输出结果。\n错误信息：")
+				for info_str in info.args:
+					warning_func(info_str)
 
 # 几何级数划分
 def geometric_rank(seq,ngroup,ratio):
@@ -223,6 +228,64 @@ def grouped_gene(points, gene_field, grouped_field, out_img, ext=".png"):
 		fig.clf()
 		plt.close('all')
 		gc.collect()
+
+
+# 分组统计基因类型并绘制计数网格图
+def grid_gene(points, gene_field, grouped_field, out_img, colorsmap=None):
+	vills = codetool.feature.to_dict(points)
+	stats = {}
+	groups = []
+	for vill in vills:
+		grp = vill[grouped_field]
+		genome = set(vill[gene_field].replace(" ","").split("-"))
+		if "" in genome: genome.remove("")
+		if not grp in stats:
+			stats[grp]={}
+			groups.append(grp)
+		for proto in genome:
+			if not proto in stats[grp]:
+				stats[grp][proto]=1
+			else:
+				stats[grp][proto]+=1
+	groups.sort()
+	groups_pop = {g:float(len(stats[g])) for g in groups}
+	proto_entries = ["L1","L2","L3","S1","S2","S3","B1","B2","B3","B4","B5","B6","B7","I1","I2","I3"]
+	protos =  ["L11","L12","L13","L14","L21","L22","L23","L24","L31","L32","L33","L34"]+[" "]
+	protos += ["S11","S12","S13","S21","S22","S23","S31","S32","S33"]+[" "]
+	protos += ["B11","B12","B13","B21","B22","B23","B31","B32","B33","B34","B41","B42","B43","B51","B52","B53","B61","B62","B63","B71","B72","B73"]+[" "]
+	protos += ["I11","I12","I13","I21","I22","I23","I31","I32","I33"]
+	protos.reverse()
+	data = []
+	for proto in protos:
+		row=[]
+		for grp in groups:
+			count = stats[grp].get(proto)
+			grpct = groups_pop[grp]
+			if count==None: count=0
+			if grpct != 0:
+				row.append(count/groups_pop[grp])
+			else:
+				row.append(0)
+		data.append(row)
+	xlen = len(groups)
+	ylen = len(protos)
+	fig, axs = plt.subplots(figsize=(xlen*1.25,20))
+	if colorsmap == None:
+		colorsmap = mpc.LinearSegmentedColormap.from_list("villband",[(1,1,1),(0.75,0,0)])
+	psm = axs.pcolormesh(data, cmap = colorsmap, shading='nearest')
+	# psm = axs.imshow(data, cmap = colorsmap, interpolation = 'none')
+	fig.colorbar(psm, ax=axs)
+	plt.xlim(0,xlen)
+	plt.ylim(0,ylen)
+	plt.xlabel(grouped_field)
+	plt.ylabel("prototype")
+	plt.xticks(range(xlen), groups)
+	plt.yticks(range(ylen), protos)
+	fig.savefig(out_img)
+	fig.clf()
+	plt.close('all')
+	gc.collect()
+	
 
 
 # 分组统计基因类型并输出事件图表
