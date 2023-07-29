@@ -33,6 +33,7 @@ def PointMove(dataset,x_offset,y_offset):
 		else:
 			print(type(geo))
 			raise Exception("错误的文件几何类型")
+		cursor.updateRow(row)
 	del row,cursor
 
 
