@@ -36,11 +36,11 @@ def _similarity_(v1,v2):
 # relation = S
 # result = D
 
-def village_comprehensive_relationship(points, fields, out_csv, dist_base, phi):
+def village_comprehensive_relationship(points, gene_field, out_csv, dist_base, phi):
 	distance = net.calc_geodistance_point(points)
 	func = lambda d:math.exp(math.log(10)*d/-dist_base)
 	dist_std = [[func(cell) for cell in row] for row in distance]
-	relation = net.calc_fielddistance_point(points, fields, _decode_LSBI_, _similarity_)
+	relation = net.calc_fielddistance_point(points, gene_field, _decode_LSBI_, _similarity_)
 	result = phi*numpy.array(dist_std) + (1-phi)*numpy.array(relation)
 	f = open(out_csv,"w")
 	for row in result.tolist():
@@ -52,11 +52,11 @@ def village_comprehensive_relationship(points, fields, out_csv, dist_base, phi):
 def hca_warning_func(x):
 	print(x)
 
-def calc_village_comph_hca_quality(points, fields, dist_base, phi, ngroup_list, out_fig, warning_func=hca_warning_func):
+def village_comph_hca_quality(points, gene_field, dist_base, phi, ngroup_list, out_fig, warning_func=hca_warning_func):
 	distance = net.calc_geodistance_point(points)
 	func = lambda d:math.exp(math.log(10)*d/-dist_base)
 	dist_std = [[func(cell) for cell in row] for row in distance]
-	relation = net.calc_fielddistance_point(points, fields, _decode_LSBI_, _similarity_)
+	relation = net.calc_fielddistance_point(points, gene_field, _decode_LSBI_, _similarity_)
 	result = phi*numpy.array(dist_std) + (1-phi)*numpy.array(relation)
 	hca = hier.linkage(result, "ward")
 	count = len(hca)+1
@@ -118,13 +118,13 @@ def calc_village_comph_hca_quality(points, fields, dist_base, phi, ngroup_list, 
 	return zip(y0,y1,y2,y3,yy)
 
 # out_fields = [(ngroup, out_field), ...]
-def village_comprehensive_hca(points, fields, out_fig, dist_base, phi, label_field=None, out_fields=None, warning_func=hca_warning_func):
+def village_comprehensive_hca(points, gene_field, out_fig, dist_base, phi, label_field=None, out_fields=None, warning_func=hca_warning_func, hca_method='ward', hca_metric='euclidean'):
 	distance = net.calc_geodistance_point(points)
 	func = lambda d:math.exp(math.log(10)*d/-dist_base)
 	dist_std = [[func(cell) for cell in row] for row in distance]
-	relation = net.calc_fielddistance_point(points, fields, _decode_LSBI_, _similarity_)
+	relation = net.calc_fielddistance_point(points, gene_field, _decode_LSBI_, _similarity_)
 	result = phi*numpy.array(dist_std) + (1-phi)*numpy.array(relation)
-	hca = hier.linkage(result, "ward")
+	hca = hier.linkage(result, hca_method, hca_metric)
 	count = len(hca)+1
 	if label_field == None:
 		labellist = range(1,count+1)
@@ -225,9 +225,49 @@ def dendrogram_division_by_level(dendrogram,level):
 
 # 根据组数划分树状图
 def dendrogram_division_by_ngroup(dendrogram,ngroup):
-	if ngroup<2: raise Exception("至少分为两个组。")
+	if ngroup<1: raise Exception("至少分为一个组。")
 	level = dendrogram[-ngroup][2]
 	return dendrogram_division_by_level(dendrogram,level)
+
+# 将data的行列差异进行比较后重排横纵坐标的tick
+def grid_data_sorter(data):
+	len_row = len(data)
+	len_col = len(data[0])
+	if len_row<=3:
+		row_seq = range(len_row)
+	else:
+		dat_row = [[None for y in range(len_row)] for x in range(len_row)]
+		for r1 in range(len_row):
+			for r2 in range(len_row-1,-1,-1):
+				if  r1 == r2:
+					dat_row[r1][r2] = 0
+				elif r1 < r2:
+					bias = 0.0
+					for i in range(len_col):
+						bias += abs(data[r1][i]-data[r2][i])
+					dat_row[r1][r2] = bias
+				else:
+					dat_row[r1][r2] = dat_row[r2][r1]
+		hca = hier.linkage(dat_row)
+		row_seq = dendrogram_division_by_ngroup(hca,1)[0]
+	if len_col<=3:
+		col_seq = range(len_col)
+	else:
+		dat_col = [[None for y in range(len_col)] for x in range(len_col)]
+		for r1 in range(len_col):
+			for r2 in range(len_col-1,-1,-1):
+				if  r1 == r2:
+					dat_col[r1][r2] = 0
+				elif r1 < r2:
+					bias = 0.0
+					for i in range(len_row):
+						bias += abs(data[i][r1]-data[i][r2])
+					dat_col[r1][r2] = bias
+				else:
+					dat_col[r1][r2] = dat_col[r2][r1]
+		hca = hier.linkage(dat_col)
+		col_seq = dendrogram_division_by_ngroup(hca,1)[0]
+	return (row_seq,col_seq)
 
 def __cmap(length):
 	# colors = ["red","yellow","green","cyan","violet"]
@@ -315,11 +355,10 @@ def grid_gene(points, gene_field, grouped_field, out_img, colorsmap=None):
 				stats[grp][proto]+=1
 	groups.sort()
 	groups_pop = {g:float(len(stats[g])) for g in groups}
-	proto_entries = ["L1","L2","L3","S1","S2","S3","B1","B2","B3","B4","B5","B6","B7","I1","I2","I3"]
-	protos =  ["L11","L12","L13","L14","L21","L22","L23","L24","L31","L32","L33","L34"]+[" "]
-	protos += ["S11","S12","S13","S21","S22","S23","S31","S32","S33"]+[" "]
-	protos += ["B11","B12","B13","B21","B22","B23","B31","B32","B33","B34","B41","B42","B43","B51","B52","B53","B61","B62","B63","B71","B72","B73"]+[" "]
-	protos += ["I11","I12","I13","I21","I22","I23","I31","I32","I33"]
+	protos =  ["L11","L12","L13","L14","L21","L22","L23","L24","L31","L32","L33","L34"]#+[" "]
+	protos += ["S11","S12","S13","S21","S22","S23","S31","S32","S33"]#+[" "]
+	protos += ["B11","B12","B13","B21","B22","B23","B31","B32","B33","B34","B41","B42","B43","B51","B52","B53","B61","B62","B63","B71","B72","B73"]#+[" "]
+	protos += ["I11","I12","I13","I21","I22","I23","I31","I32","I33","I34"]
 	protos.reverse()
 	data = []
 	for proto in protos:
@@ -327,26 +366,27 @@ def grid_gene(points, gene_field, grouped_field, out_img, colorsmap=None):
 		for grp in groups:
 			count = stats[grp].get(proto)
 			grpct = groups_pop[grp]
-			if count==None: count=0
+			if count == None: count=0
 			if grpct != 0:
 				row.append(count/groups_pop[grp])
 			else:
 				row.append(0)
 		data.append(row)
+	data_row, data_col = grid_data_sorter(data)
 	xlen = len(groups)
 	ylen = len(protos)
 	fig, axs = plt.subplots(figsize=(xlen*1.25,20))
 	if colorsmap == None:
 		colorsmap = mpc.LinearSegmentedColormap.from_list("villband",[(1,1,1),(0.75,0,0)])
-	psm = axs.pcolormesh(data, cmap = colorsmap, shading='nearest')
-	# psm = axs.imshow(data, cmap = colorsmap, interpolation = 'none')
+	psm = axs.pcolormesh([[data[row][col] for col in data_col] for row in data_row], cmap = colorsmap, shading='nearest')
+	axs.grid(True, linestyle='-', color='White', linewidth=3)
 	fig.colorbar(psm, ax=axs)
 	plt.xlim(0,xlen)
 	plt.ylim(0,ylen)
 	plt.xlabel(grouped_field)
 	plt.ylabel("prototype")
-	plt.xticks(range(xlen), groups)
-	plt.yticks(range(ylen), protos)
+	plt.xticks(range(xlen), [groups[i] for i in data_col])
+	plt.yticks(range(ylen), [protos[i] for i in data_row])
 	fig.savefig(out_img)
 	fig.clf()
 	plt.close('all')
