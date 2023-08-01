@@ -35,6 +35,7 @@ def _similarity_(v1,v2):
 # dist_std = G
 # relation = S
 # result = D
+
 def village_comprehensive_relationship(points, fields, out_csv, dist_base, phi):
 	distance = net.calc_geodistance_point(points)
 	func = lambda d:math.exp(math.log(10)*d/-dist_base)
@@ -50,6 +51,71 @@ def village_comprehensive_relationship(points, fields, out_csv, dist_base, phi):
 
 def hca_warning_func(x):
 	print(x)
+
+def calc_village_comph_hca_quality(points, fields, dist_base, phi, ngroup_list, out_fig, warning_func=hca_warning_func):
+	distance = net.calc_geodistance_point(points)
+	func = lambda d:math.exp(math.log(10)*d/-dist_base)
+	dist_std = [[func(cell) for cell in row] for row in distance]
+	relation = net.calc_fielddistance_point(points, fields, _decode_LSBI_, _similarity_)
+	result = phi*numpy.array(dist_std) + (1-phi)*numpy.array(relation)
+	hca = hier.linkage(result, "ward")
+	count = len(hca)+1
+	pinf = float('+Inf')
+	ninf = float('-Inf')
+	y0,y1,y2,y3,yy = [],[],[],[],[]
+	for ngroup in ngroup_list:
+		try:
+			division = dendrogram_division_by_ngroup(hca,ngroup)
+			inner_list = []
+			group_len = len(division)
+			for groups in division:
+				node_len = len(groups)
+				inner = ninf
+				for i in range(node_len):
+					for j in range(i):
+						n1 = groups[i]
+						n2 = groups[j]
+						if inner < result[n1,n2]:
+							inner = result[n1,n2]
+				if inner != ninf: inner_list.append(inner)
+			outer_list = []
+			for gidx1 in range(group_len):
+				for gidx2 in range(gidx1):
+					gp1 = division[gidx1]
+					gp2 = division[gidx2]
+					outer = pinf
+					for i in gp1:
+						for j in gp2:
+							if outer > result[i,j]:
+								outer = result[i,j]
+					if outer != pinf: outer_list.append(inner)
+			y0.append(numpy.max(inner_list))
+			y1.append(numpy.min(outer_list))
+			y2.append(numpy.mean(inner_list))
+			y3.append(numpy.mean(outer_list))
+			yy.append(numpy.mean(inner_list)/numpy.mean(outer_list))
+		except Exception, info:
+			warning_func("无法将层次聚类结果分为"+str(ngroup)+"类，未输出结果。\n错误信息：")
+			for info_str in info.args:
+				warning_func(info_str)
+	fig = plt.figure()
+	ax1 = fig.add_subplot(111)
+	ax1.set_xlabel('ngroup')
+	ax1.set_ylabel('similarity')
+	ax1.plot(ngroup_list,y0,label='$S_{i=j,max}$',color="Blue",linestyle=':')
+	ax1.plot(ngroup_list,y1,label='$S_{i \\neq j,min}$',color="Red",linestyle=':')
+	ax1.plot(ngroup_list,y2,label='$\\bar S_{i=j,max}$',color="Blue",linestyle='-')
+	ax1.plot(ngroup_list,y3,label='$\\bar S_{i \\neq j,min}$',color="Red",linestyle='-')
+	ax1.legend(loc=0)
+	ax2 = ax1.twinx()
+	ax2.plot(ngroup_list,yy,label="$S_{i=j} / S_{i \\neq j}$",color="Black")
+	ax2.set_ylabel("I/E")
+	ax2.legend(loc=0)
+	fig.savefig(out_fig,dpi=150)
+	fig.clf()
+	plt.close('all')
+	gc.collect()
+	return zip(y0,y1,y2,y3,yy)
 
 # out_fields = [(ngroup, out_field), ...]
 def village_comprehensive_hca(points, fields, out_fig, dist_base, phi, label_field=None, out_fields=None, warning_func=hca_warning_func):
