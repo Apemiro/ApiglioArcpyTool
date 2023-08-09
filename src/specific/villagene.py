@@ -267,7 +267,8 @@ def grid_data_sorter(data):
 					dat_col[r1][r2] = dat_col[r2][r1]
 		hca = hier.linkage(dat_col)
 		col_seq = dendrogram_division_by_ngroup(hca,1)[0]
-	return (row_seq,col_seq)
+	new_data = [[data[row][col] for col in col_seq] for row in row_seq]
+	return (row_seq,col_seq,new_data)
 
 def __cmap(length):
 	# colors = ["red","yellow","green","cyan","violet"]
@@ -372,13 +373,13 @@ def grid_gene(points, gene_field, grouped_field, out_img, colorsmap=None):
 			else:
 				row.append(0)
 		data.append(row)
-	data_row, data_col = grid_data_sorter(data)
+	data_row, data_col, data_new = grid_data_sorter(data)
 	xlen = len(groups)
 	ylen = len(protos)
 	fig, axs = plt.subplots(figsize=(xlen*1.25,20))
 	if colorsmap == None:
 		colorsmap = mpc.LinearSegmentedColormap.from_list("villband",[(1,1,1),(0.75,0,0)])
-	psm = axs.pcolormesh([[data[row][col] for col in data_col] for row in data_row], cmap = colorsmap, shading='nearest')
+	psm = axs.pcolormesh(data_new, cmap = colorsmap, shading='nearest')
 	axs.grid(True, linestyle='-', color='White', linewidth=3)
 	fig.colorbar(psm, ax=axs)
 	plt.xlim(0,xlen)
