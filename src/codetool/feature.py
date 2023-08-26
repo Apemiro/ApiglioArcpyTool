@@ -76,7 +76,7 @@ def to_file(list_of_geometry,dataset="temp_list_export",path="in_memory",spatial
 		for shape in list_of_geometry:
 			cursor.insertRow([shape])
 
-def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",spatial_reference=None):
+def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",spatial_reference=None,sorted_field_list=None):
 	#fields = []
 	#fields_type = []
 	field_infos = []
@@ -109,6 +109,10 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	except:
 		print("Shape字段缺失")
 	field_infos.sort(key=lambda x:x["name"])
+	# 如果名称在排序列表里，则放到最前，并排序
+	if sorted_field_list != None:
+		not_in_list = len(sorted_field_list)
+		field_infos.sort(key=lambda x:sorted_field_list.index(x["name"]) if x["name"] in sorted_field_list else not_in_list)
 	
 	# 创建字段并排除类型不满足要求的字段
 	fields_valid = []
