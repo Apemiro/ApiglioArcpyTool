@@ -31,5 +31,15 @@ else:
 	method_calc=eval(str_calc)
 
 edge_out=arcpy.GetParameterAsText(6)
+id_field_1=arcpy.GetParameterAsText(7)
+id_field_2=arcpy.GetParameterAsText(8)
+max_length_str=arcpy.GetParameterAsText(9)
 
-src.net.Bipartite(point_1,point_2,edge_out,fields_1,fields_2,method,method_calc,False)
+try:
+	max_length = float(max_length_str)
+except:
+	max_length = None
+
+calc_field_type = arcpy.GetParameterAsText(10)
+
+src.net.Bipartite(point_1,point_2,edge_out,fields_1,fields_2,method,method_calc,False,max_length,id_field_1,id_field_2,calc_field_type)

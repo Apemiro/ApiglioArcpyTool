@@ -156,10 +156,12 @@ def GenGeoNetworkByValue(nodes,output_edges,valfield,in_memory=True):
 
 
 
-def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True,field_calc=lambda fs1,fs2:0.0,in_memory=True):
+def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion=lambda fs1,fs2,pl:True,field_calc=lambda fs1,fs2:0.0,in_memory=True,max_length=None,id_field_1=None,id_field_2=None,calc_field_type="DOUBLE"):
 	#获取节点坐标，保存在列表中
-	id_field_1=arcpy.ListFields(dataset_1)[0].name
-	id_field_2=arcpy.ListFields(dataset_2)[0].name
+	if id_field_1 == None:
+		id_field_1=arcpy.ListFields(dataset_1)[0].name
+	if id_field_2 == None:
+		id_field_2=arcpy.ListFields(dataset_2)[0].name
 	pos_1=[]
 	for row in arcpy.da.SearchCursor(dataset_1,[id_field_1,"SHAPE@"]+fields_1):
 		pos_1.append(row)
@@ -178,7 +180,7 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 	arcpy.AddField_management(output_edges, "length", "DOUBLE")
 	arcpy.AddField_management(output_edges, "node_1", "LONG")
 	arcpy.AddField_management(output_edges, "node_2", "LONG")
-	arcpy.AddField_management(output_edges, "calc", "DOUBLE")
+	arcpy.AddField_management(output_edges, "calc", calc_field_type)
 	
 	for r1 in pos_1:
 		id_1=r1[0]
@@ -192,8 +194,9 @@ def Bipartite(dataset_1,dataset_2,output_edges,fields_1=[],fields_2=[],criterion
 			arr = arcpy.Array([_from,_to])
 			polyline = arcpy.Polyline(arr)
 			if criterion(r1[2:],r2[2:],polyline):
-				cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","length","node_1","node_2","calc"])
-				cursor.insertRow([polyline,polyline.length,id_1,id_2,field_calc(r1[2:],r2[2:])])
+				if max_length == None or max_length >= polyline.length:
+					cursor = arcpy.da.InsertCursor(output_edges, ["SHAPE@","length","node_1","node_2","calc"])
+					cursor.insertRow([polyline,polyline.length,id_1,id_2,field_calc(r1[2:],r2[2:])])
 
 def Delaunay(node_dataset,id_field,out_face_dataset,vertice_type="SET",in_memory=True):
 	pts = []
