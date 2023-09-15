@@ -4,6 +4,9 @@
 import arcpy
 import arcpy.sa
 
+def __active_df_sr():
+	return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
+
 def __get_layer(name):
 	mxd = arcpy.mapping.MapDocument("Current")
 	lyrs = arcpy.mapping.ListLayers(mxd,"山")
@@ -36,11 +39,36 @@ def getLatLong(layer):
 
 
 
+def getLayerDataFrame(layer_object):
+	'''根据图层对象查找并返回其所属的数据框对象'''
+	mxd = arcpy.mapping.MapDocument("Current")
+	dfs = arcpy.mapping.ListDataFrames(mxd)
+	for dfm in dfs:
+		if layer_object in arcpy.mapping.ListLayers(mxd,"*",dfm):
+			return dfm
+	return None
 
-
-
-
-
-
+def all_saw(layer):
+	'''根据图层所在数据框的显示范围选择图层要素'''
+	mxd = arcpy.mapping.MapDocument("Current")
+	lyrs = arcpy.mapping.ListLayers(mxd, layer)
+	if len(lyrs) != 1:
+		raise Exception("存在重名图层，不能确定选择操作。")
+	lyr = lyrs[0]
+	dfm = getLayerDataFrame(lyr)
+	dfm_ext = dfm.extent
+	lyr.setSelectionSet("NEW",[])
+	sr = dfm.spatialReference.exportToString()
+	exts = []
+	cursor = arcpy.da.SearchCursor(lyr.dataSource,["SHAPE@"],spatial_reference=sr)
+	for row in cursor:
+		exts.append(row[0].extent)
+	sels = []
+	for idx,pos in enumerate(exts):
+		if dfm_ext.contains(pos):
+			sels.append(idx)
+	lyr.setSelectionSet("NEW",sels)
+	arcpy.RefreshActiveView()
+	arcpy.RefreshTOC()
 
 
