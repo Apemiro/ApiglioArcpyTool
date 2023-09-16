@@ -55,18 +55,19 @@ def all_saw(layer):
 	if len(lyrs) != 1:
 		raise Exception("存在重名图层，不能确定选择操作。")
 	lyr = lyrs[0]
+	id_field = arcpy.Describe(lyr).fields[0].name
 	dfm = getLayerDataFrame(lyr)
 	dfm_ext = dfm.extent
 	lyr.setSelectionSet("NEW",[])
 	sr = dfm.spatialReference.exportToString()
 	exts = []
-	cursor = arcpy.da.SearchCursor(lyr.dataSource,["SHAPE@"],spatial_reference=sr)
+	cursor = arcpy.da.SearchCursor(lyr.dataSource,[id_field,"SHAPE@"],spatial_reference=sr)
 	for row in cursor:
-		exts.append(row[0].extent)
+		exts.append([row[0],row[1].extent])
 	sels = []
-	for idx,pos in enumerate(exts):
-		if dfm_ext.contains(pos):
-			sels.append(idx)
+	for pos in exts:
+		if dfm_ext.contains(pos[1]) or pos[1].overlaps(dfm_ext):
+			sels.append(pos[0])
 	lyr.setSelectionSet("NEW",sels)
 	arcpy.RefreshActiveView()
 	arcpy.RefreshTOC()
