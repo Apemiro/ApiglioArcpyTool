@@ -157,7 +157,7 @@ def createViewCenter(data_frame_name="",in_memory_feature="TempViewPoint",has_z=
 def list_layer(wildcard="*",data_frame_name=""):
 	mxd=document()
 	ddf=data_frame(data_frame_name)
-	return arcpy.mapping.listLayers(mxd,wildcard,ddf)
+	return arcpy.mapping.ListLayers(mxd,wildcard,ddf)
 
 def add_layer(filename,data_frame_name="",position="TOP"):
 	ddf=data_frame(data_frame_name)
