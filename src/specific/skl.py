@@ -12,6 +12,7 @@ import codetool.feature
 import raster
 import geoop.geolib
 import math
+import logline
 
 class SkylineGrid:
 	"指定水平和垂直角度范围及秒单位步长，创建用于天际线轮廓分析的点阵。\nSkylineGrid(a_horiz_range=[0,360],a_zenith_range=[75,105],a_cell_width_second=900,a_cell_height_second=900)"
@@ -128,7 +129,7 @@ def vector_angle(vec):
 	y = float(vec[1])
 	if x==0:
 		if y>0: return math.pi/2.0
-		elif y<0: return math.pi/-2.0
+		elif y<0: return math.pi*3.0/2.0
 		else: return None
 	res=math.atan(y/x)
 	if x<0:res+=math.pi
@@ -141,7 +142,7 @@ def vector_substract(a,b):
 def vector_length(a):
 	return (a[0]**2+a[1]**2)**0.5
 
-def ss(view_point, dem_raster, max_distance, landscape_fn='TempViewDist'):
+def viewpoint_to_landscape(view_point, dem_raster, max_distance, landscape_fn='TempViewDist', export_path='in_memory'):
 	if not isinstance(view_point,arcpy.PointGeometry):
 		raise Exception('view_point 不是arcpy.PointGeometry')
 	lng = view_point.firstPoint.X
@@ -152,15 +153,19 @@ def ss(view_point, dem_raster, max_distance, landscape_fn='TempViewDist'):
 	view_point_fn = 'TempViewPoint'
 	vis_file_name = 'Visibility'
 	obs_height = "20.0"
-	codetool.feature.to_file([view_point],view_point_fn,path="in_memory")
-	arcpy.Visibility_3d(in_raster=dem_raster, in_observer_features=view_point_fn, out_raster="in_memory/"+vis_file_name, out_agl_raster="", analysis_type="OBSERVERS", nonvisible_cell_value="ZERO", z_factor="1", curvature_correction="FLAT_EARTH", refractivity_coefficient="0.13", surface_offset="", observer_elevation="", observer_offset=obs_height, inner_radius="", outer_radius="", horizontal_start_angle="", horizontal_end_angle="", vertical_upper_angle="", vertical_lower_angle="")
-	vis = arcpy.RasterToNumPyArray(vis_file_name)
-	print("可见性计算完成")
+	if arcpy.Exists("in_memory/"+view_point_fn):
+		arcpy.management.Delete("in_memory/"+view_point_fn)
+	if arcpy.Exists("in_memory/"+vis_file_name):
+		arcpy.management.Delete("in_memory/"+vis_file_name)
+	codetool.feature.to_file([view_point],view_point_fn,path='in_memory')
+	arcpy.Visibility_3d(in_raster=dem_raster, in_observer_features="in_memory/"+view_point_fn, out_raster="in_memory/"+vis_file_name, out_agl_raster="", analysis_type="OBSERVERS", nonvisible_cell_value="ZERO", z_factor="1", curvature_correction="FLAT_EARTH", refractivity_coefficient="0.13", surface_offset="", observer_elevation="", observer_offset=obs_height, inner_radius="", outer_radius="", horizontal_start_angle="", horizontal_end_angle="", vertical_upper_angle="", vertical_lower_angle="")
+	vis = arcpy.RasterToNumPyArray("in_memory/"+vis_file_name)
+	logline.log("可见性计算完成","m")
 	nrow = len(vis)
 	ncol = vis.size / nrow
 	landscape = []
 	elev_vp = dem[viewpoint_uv[1]][viewpoint_uv[0]]
-	print("计算每一个像元（%d, %d），视点坐标（%d, %d）"%(nrow,ncol,viewpoint_uv[0],viewpoint_uv[1]))
+	logline.log("计算每一个像元（%d, %d），视点坐标（%d, %d）"%(nrow,ncol,viewpoint_uv[0],viewpoint_uv[1]),"m")
 	for pi in range(nrow):
 		delta_y = abs(pi-viewpoint_uv[1])
 		if delta_y>max_distance: continue
@@ -176,11 +181,13 @@ def ss(view_point, dem_raster, max_distance, landscape_fn='TempViewDist'):
 			dist = vector_length(vec)
 			# elev = dem[pi][pj] #改用仰角而不是高度
 			elev = math.atan((dem[pi][pj] - elev_vp)/dist)
-			landscape.append([orie, elev, dist, pj, pi, tar[0],tar[1], vec[0], vec[1]])
-	print("保存到文件中")
+			landscape.append([orie, elev, dist])
+	logline.log("保存到文件中","m")
 	list_of_dict = []
 	for row in landscape:
-		ptmp = geoop.geolib.to_point([row[0],float(row[1])])
+		pos_x = row[0]*10800/math.pi
+		pos_y = row[1]*10800/math.pi
+		ptmp = geoop.geolib.to_point([pos_x,pos_y])
 		geop = geoop.geolib.to_pointgeo(ptmp)
 		dict_in_list = {}
 		dict_in_list["SHAPE@"] = geop
@@ -188,15 +195,32 @@ def ss(view_point, dem_raster, max_distance, landscape_fn='TempViewDist'):
 		dict_in_list["dist"] = row[2]
 		list_of_dict.append(dict_in_list)
 	if len(list_of_dict)>0:
-		codetool.feature.dict_to_file(list_of_dict,landscape_fn)
+		valid_fn = arcpy.ValidateTableName(landscape_fn)
+		logline.log('%s  %s.shp'%(export_path, valid_fn),"m")
+		codetool.feature.dict_to_file(list_of_dict,"%s.shp"%(valid_fn,),export_path)
 	else:
-		print("无有效视点")
+		logline.log("无有效视点","w")
 		landscape = []
 	return landscape
 
 
-
-
+def viewpoints_to_landscape(view_points, dem_raster, max_dist, export_path, name_field=None):
+	try:
+		codetool.df.BeginUpdate()
+		vps = codetool.feature.to_dict(view_points)
+		if name_field == None:
+			nf = arcpy.Describe(view_points).fields[0].name
+		else:
+			nf = name_field
+		for vp, fn in [(x["SHAPE@"],x[nf]) for x in vps]:
+			viewpoint_to_landscape(vp, dem_raster, max_dist, "%s"%(fn,), export_path)
+	except Exception as err:
+		logline.log("Failed: %s"%(fn,),"e")
+		for arg in err.args:
+			logline.log(arg,"e")
+		logline.log(err.message,"e")
+	finally:
+		codetool.df.EndUpdate()
 
 
 
