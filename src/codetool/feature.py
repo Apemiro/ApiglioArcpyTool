@@ -77,16 +77,12 @@ def to_file(list_of_geometry,dataset="temp_list_export",path="in_memory",spatial
 			cursor.insertRow([shape])
 
 def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",spatial_reference=None,sorted_field_list=None):
-	#fields = []
-	#fields_type = []
 	field_infos = []
 	fields_set = set([])
 	for fea in list_of_dict:
 		for fd in fea.keys():
 			if not fd in fields_set:
 				fields_set.add(fd)
-				#fields.append(fd)
-				#fields_type.append(type(fea[fd]))
 				field_infos.append({"name":fd,"type":type(fea[fd])})
 	
 	# 检查第一行是否有图形字段
@@ -118,23 +114,24 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	fields_valid = []
 	fields_index = {}
 	row_template = []
+	dataset_full_name = path + '/' + dataset
 	for idx in range(len(field_infos)):
-		#field_name = fields[idx]
-		#field_type = fields_type[idx]
 		field_name = field_infos[idx]["name"]
 		field_type = field_infos[idx]["type"]
+		if field_name in [x.name for x in arcpy.Describe(dataset_full_name).fields]:
+			continue
 		if field_type in [int]:
-			arcpy.management.AddField(dataset,field_name,"LONG")
+			arcpy.management.AddField(dataset_full_name,field_name,"LONG")
 			fields_valid.append(field_name)
 			row_template.append(0)
 			fields_index[field_name] = len(fields_valid)
 		elif field_type in [float]:
-			arcpy.management.AddField(dataset,field_name,"DOUBLE")
+			arcpy.management.AddField(dataset_full_name,field_name,"DOUBLE")
 			fields_valid.append(field_name)
 			row_template.append(0.0)
 			fields_index[field_name] = len(fields_valid)
 		elif field_type in [str, unicode]:
-			arcpy.management.AddField(dataset,field_name,"TEXT",field_length=255)
+			arcpy.management.AddField(dataset_full_name,field_name,"TEXT",field_length=255)
 			fields_valid.append(field_name)
 			row_template.append("")
 			fields_index[field_name] = len(fields_valid)
@@ -143,7 +140,7 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	
 	# 编辑
 	row_template = [None] + row_template
-	cursor = arcpy.da.InsertCursor(dataset, ["SHAPE@"]+fields_valid)
+	cursor = arcpy.da.InsertCursor(dataset_full_name, ["SHAPE@"]+fields_valid)
 	for fea in list_of_dict:
 		row=list(row_template)
 		row[0]=fea["SHAPE@"]
