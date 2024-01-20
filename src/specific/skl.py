@@ -13,6 +13,7 @@ import raster
 import geoop.geolib
 import math
 import logline
+import struct
 
 class SkylineGrid:
 	"指定水平和垂直角度范围及秒单位步长，创建用于天际线轮廓分析的点阵。\nSkylineGrid(a_horiz_range=[0,360],a_zenith_range=[75,105],a_cell_width_second=900,a_cell_height_second=900)"
@@ -142,7 +143,15 @@ def vector_substract(a,b):
 def vector_length(a):
 	return (a[0]**2+a[1]**2)**0.5
 
-def viewpoint_to_landscape(view_point, dem_raster, max_distance, landscape_fn='TempViewDist', export_path='in_memory'):
+# 返回结果[ls]  其中ls : array[0..2] = [x,y,dist]
+# x为方位角: E=0; N=pi/2; W=pi; S=3*pi/2
+# y为仰角：horizontal=0; top=pi/2; bottom=-pi/2
+def viewpoint_to_landscape(view_point, dem_raster, max_distance, min_distance=0, landscape_fn='TempViewDist', export_path='in_memory',export_formats=["shp","dat"]):
+	export_formats = [x.lower() for x in export_formats]
+	cw = arcpy.Describe(dem_raster).meanCellWidth
+	ch = arcpy.Describe(dem_raster).meanCellHeight
+	cw_sqr = cw * cw
+	ch_sqr = ch * ch
 	if not isinstance(view_point,arcpy.PointGeometry):
 		raise Exception('view_point 不是arcpy.PointGeometry')
 	lng = view_point.firstPoint.X
@@ -168,11 +177,13 @@ def viewpoint_to_landscape(view_point, dem_raster, max_distance, landscape_fn='T
 	logline.log("计算每一个像元（%d, %d），视点坐标（%d, %d）"%(nrow,ncol,viewpoint_uv[0],viewpoint_uv[1]),"m")
 	for pi in range(nrow):
 		delta_y = abs(pi-viewpoint_uv[1])
-		if delta_y>max_distance: continue
+		if delta_y*ch>max_distance: continue
 		for pj in range(ncol):
 			delta_x = abs(pj-viewpoint_uv[0])
-			if delta_x>max_distance: continue
-			if (delta_x**2+delta_y**2)**0.5>max_distance: continue
+			if delta_x*cw>max_distance: continue
+			target_distance = (cw_sqr*delta_x**2+ch_sqr*delta_y**2)**0.5
+			if target_distance>max_distance: continue
+			if target_distance<min_distance: continue
 			if vis[pi][pj] == 0: continue
 			tar = raster.uv_to_xy(dem_raster,[pj,pi])
 			vec = vector_substract(tar,viewpoint_xy)
@@ -183,28 +194,37 @@ def viewpoint_to_landscape(view_point, dem_raster, max_distance, landscape_fn='T
 			elev = math.atan((dem[pi][pj] - elev_vp)/dist)
 			landscape.append([orie, elev, dist])
 	logline.log("保存到文件中","m")
-	list_of_dict = []
-	for row in landscape:
-		pos_x = row[0]*10800/math.pi
-		pos_y = row[1]*10800/math.pi
-		ptmp = geoop.geolib.to_point([pos_x,pos_y])
-		geop = geoop.geolib.to_pointgeo(ptmp)
-		dict_in_list = {}
-		dict_in_list["SHAPE@"] = geop
-		dict_in_list["Shape"] = geop
-		dict_in_list["dist"] = row[2]
-		list_of_dict.append(dict_in_list)
-	if len(list_of_dict)>0:
-		valid_fn = arcpy.ValidateTableName(landscape_fn)
-		logline.log('%s  %s.shp'%(export_path, valid_fn),"m")
-		codetool.feature.dict_to_file(list_of_dict,"%s.shp"%(valid_fn,),export_path)
-	else:
-		logline.log("无有效视点","w")
-		landscape = []
+	valid_fn = arcpy.ValidateTableName(landscape_fn)
+	if "shp" in export_formats:
+		list_of_dict = []
+		for row in landscape:
+			pos_x = row[0]*10800/math.pi
+			pos_y = row[1]*10800/math.pi
+			ptmp = geoop.geolib.to_point([21600-pos_x,pos_y]) #x轴根据方位角的定义做左右镜像
+			geop = geoop.geolib.to_pointgeo(ptmp)
+			dict_in_list = {}
+			dict_in_list["SHAPE@"] = geop
+			dict_in_list["Shape"] = geop
+			dict_in_list["dist"] = row[2]
+			list_of_dict.append(dict_in_list)
+		if len(list_of_dict)>0:
+			logline.log('%s  %s.shp'%(export_path, valid_fn),"m")
+			codetool.feature.dict_to_file(list_of_dict,"%s.shp"%(valid_fn,),export_path)
+		else:
+			logline.log("无有效视点","w")
+			landscape = []
+	if "dat" in export_formats:
+		with open("%s/%s.dat"%(export_path,valid_fn),"wb") as f:
+			acc=0
+			for row in landscape:
+				f.write(struct.pack("<d",row[0]))
+				f.write(struct.pack("<d",row[1]))
+				f.write(struct.pack("<d",row[2]))
+				acc+=1
 	return landscape
 
 
-def viewpoints_to_landscape(view_points, dem_raster, max_dist, export_path, name_field=None):
+def viewpoints_to_landscape(view_points, dem_raster, max_dist, min_dist, export_path, name_field=None, export_formats=["shp","dat"]):
 	try:
 		codetool.df.BeginUpdate()
 		vps = codetool.feature.to_dict(view_points)
@@ -213,7 +233,7 @@ def viewpoints_to_landscape(view_points, dem_raster, max_dist, export_path, name
 		else:
 			nf = name_field
 		for vp, fn in [(x["SHAPE@"],x[nf]) for x in vps]:
-			viewpoint_to_landscape(vp, dem_raster, max_dist, "%s"%(fn,), export_path)
+			viewpoint_to_landscape(vp, dem_raster, max_dist, min_dist, "%s"%(fn,), export_path, export_formats)
 	except Exception as err:
 		logline.log("Failed: %s"%(fn,),"e")
 		for arg in err.args:
@@ -222,13 +242,39 @@ def viewpoints_to_landscape(view_points, dem_raster, max_dist, export_path, name
 	finally:
 		codetool.df.EndUpdate()
 
+def dat_to_landscape(filename):
+	result=[]
+	with open(filename, "rb") as f:
+		while True:
+			chunk = f.read(24)
+			if len(chunk) != 24: break
+			x = struct.unpack("<d",chunk[:8])[0]
+			y = struct.unpack("<d",chunk[8:16])[0]
+			d = struct.unpack("<d",chunk[16:])[0]
+			result.append([x,y,d])
+	return result
 
+def shp_to_landscape(dataset):
+	shp_dicts = codetool.feature.to_dict(dataset)
+	result=[]
+	for fea in shp_dicts:
+		point = fea["SHAPE@"].firstPoint
+		pos_x = point.X*math.pi/10800.0
+		pos_y = point.Y*math.pi/10800.0
+		result.append([pos_x,pos_y,fea["dist"]])
+	return result
 
+def grouped_landscape(ls):
+	orientation_cell = math.pi / 60.0 # 3.degrees
+	group_count = int(2*math.pi / orientation_cell)
+	result = [list() for x in range(group_count)]
+	for one in ls:
+		group_no = group_count - int(one[0] / orientation_cell)
+		result[group_no].append(one)
+	return result
 
-
-
-
-
+def gls_to_plot(gls):
+	pass
 
 
 
