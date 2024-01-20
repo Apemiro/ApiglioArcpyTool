@@ -13,6 +13,7 @@ import raster
 import geoop.geolib
 import math
 import logline
+import plot
 import struct
 
 class SkylineGrid:
@@ -269,13 +270,18 @@ def grouped_landscape(ls):
 	group_count = int(2*math.pi / orientation_cell)
 	result = [list() for x in range(group_count)]
 	for one in ls:
-		group_no = group_count - int(one[0] / orientation_cell)
+		group_no = group_count - int(one[0] / orientation_cell) - 1
 		result[group_no].append(one)
 	return result
 
-def gls_to_plot(gls):
-	pass
-
+def gls_to_plot(gls,filename):
+	g_max_y = [max([one[1] for one in grp]) for grp in gls]
+	g_min_y = [min([one[1] for one in grp]) for grp in gls]
+	g_max_dist = [max([one[2] for one in grp]) for grp in gls]
+	g_min_dist = [min([one[2] for one in grp]) for grp in gls]
+	plot.lines(zip(g_min_y,g_max_y),filename+'_y.png','each 3-degree-horizontal angle','radian vertical angle',figsize=[36,3])
+	plot.lines(zip(g_min_dist,g_max_dist),filename+'_dist.png','each 3-degree-horizontal angle','visible distance',figsize=[36,3])
+	#增加K-means聚类出2~3类的聚类系数比较得出的景别判断图
 
 
 
