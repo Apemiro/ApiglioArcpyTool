@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import arcpy
+import math
 
 def polygon(coords):
 	points=[]
@@ -40,9 +41,34 @@ def polyline(coords,closed=False):
 	arr=arcpy.Array(points)
 	return arcpy.Polyline(arr)
 
+def __point_angle_offset(point,radian_angle,length):
+	ori_x = point.X
+	ori_y = point.Y
+	default_Z = None if point.Z==None else 0
+	default_M = None if point.M==None else 0
+	new_x = ori_x+length*math.cos(radian_angle)
+	new_y = ori_y+length*math.sin(radian_angle)
+	return arcpy.Point(new_x,new_y,default_Z,default_M)
 
-
-
+def sector(point,orie_deg_1,orie_deg_2,radius,segment=96):
+	ori_x = point.X
+	ori_y = point.Y
+	deg_1 = orie_deg_1%360
+	deg_2 = orie_deg_2%360
+	while deg_2>deg_1: deg_2-=360
+	while deg_2<deg_1: deg_2+=360
+	rad_1 = math.pi*deg_1/180.0
+	rad_2 = math.pi*deg_2/180.0
+	seg_n = int(segment*(deg_2-deg_1)/360.0)
+	if seg_n<1: seg_n=1
+	delta_rad = (rad_2 - rad_1) / seg_n
+	points = [point]
+	for idx in range(seg_n):
+		angle = rad_1+delta_rad*idx
+		points.append(__point_angle_offset(point,angle,radius))
+	points.append(__point_angle_offset(point,rad_2,radius))
+	return arcpy.Polygon(arcpy.Array(points))
+	
 
 def add_face(coords,dataset="TempFace",path="in_memory"):
 	geo=ploygon(coords)
