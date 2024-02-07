@@ -43,17 +43,15 @@ def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=
 		cnt_row = int(range_y / cellscale[1])+1
 		proportion = cellscale[0] / float(cellscale[1])
 	
-	oridata = []
+	grid_data = []
 	for row in range(cnt_row):
-		oridata.append([0 for x in range(cnt_col)])
+		grid_data.append([0 for x in range(cnt_col)])
 	for datum in data:
 		grid_x = int(cnt_col * (datum[0] - x_min) / range_x)
 		grid_y = int(cnt_row * (datum[1] - y_min) / range_y)
 		if grid_x >= cnt_col: grid_x = cnt_col-1
 		if grid_y >= cnt_row: grid_y = cnt_row-1
-		oridata[grid_y][grid_x] += 1
-	
-	#data_row, data_col, data_new = grid_data_sorter(oridata)
+		grid_data[grid_y][grid_x] += 1
 	
 	if figsize==None:
 		fig_w = cnt_col * 0.5
@@ -66,7 +64,7 @@ def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=
 	fig, axs = plt.subplots(figsize=figsize)
 	if colorsmap == None:
 		colorsmap = mpc.LinearSegmentedColormap.from_list("villband",[(1,1,1),(0.75,0,0)])
-	psm = axs.pcolormesh(oridata, cmap = colorsmap, shading='nearest')
+	psm = axs.pcolormesh(grid_data, cmap = colorsmap, shading='nearest')
 	axs.grid(True, linestyle='-', color='White', linewidth=3)
 	fig.colorbar(psm, ax=axs)
 	plt.xlim(0, cnt_col)
@@ -75,9 +73,8 @@ def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=
 	plt.ylabel(ylabel)
 	reso_x = -int(math.log10(cellscale[0]))
 	reso_y = -int(math.log10(cellscale[1]))
-	if reso_x<1: reso_x=1
-	if reso_y<1: reso_y=1
-	print oridata
+	if reso_x<0: reso_x=0
+	if reso_y<0: reso_y=0
 	plt.xticks(range(cnt_col+1), [("%."+str(reso_x)+"f")%(x_min+i*cellscale[0],) for i in range(cnt_col+1)])
 	plt.yticks(range(cnt_row+1), [("%."+str(reso_y)+"f")%(x_min+i*cellscale[1],) for i in range(cnt_row+1)])
 	fig.savefig(save_filename)
