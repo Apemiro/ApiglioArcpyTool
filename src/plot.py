@@ -13,7 +13,7 @@ def __floor(num,frac):
 def __ceil(num,frac):
 	return num - num%frac + frac
 
-def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300):
+def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None, ylim=None):
 	if figsize == None:
 		fig = plt.figure()
 	else:
@@ -21,6 +21,10 @@ def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300):
 	ax = fig.add_subplot(111)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
+	if xlim != None:
+		plt.xlim(xlim[0],xlim[1])
+	if ylim != None:
+		plt.ylim(ylim[0],ylim[1])
 	ax.plot(data)
 	fig.savefig(save_filename, dpi=dpi)
 	fig.clf()
