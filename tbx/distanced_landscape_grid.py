@@ -31,6 +31,8 @@ output_filename = arcpy.GetParameterAsText(1)
 value_mode = arcpy.GetParameterAsText(2)
 stats_mode = arcpy.GetParameterAsText(3)
 colorsmap  = arcpy.GetParameterAsText(4)
+data_range_str  = arcpy.GetParameterAsText(5)
+vertical_reso   = int(arcpy.GetParameterAsText(6))
 
 if value_mode == "COUNT":
 	key = key_count
@@ -43,6 +45,10 @@ else:
 		key = key_mean
 if colorsmap in [None,""]:
 	colorsmap = "Greens"
+try:
+	data_range=[float(x) for x in data_range_str.split(" ")]
+except:
+	data_range=None
 ls = skl.dat_to_landscape(input_filename)
 ls_in_angle_minute = [(x[0]/math.pi*180.0,x[1]/math.pi*180.0,x[2]) for x in ls]
-aplot.grids(ls_in_angle_minute, output_filename, u'\u65b9\u4f4d\u89d2', u'\u4fef\u4ef0\u89d2', cellscale=(1,1), figsize=(200,12), key=key, colorsmap=colorsmap)
+aplot.grids(ls_in_angle_minute, output_filename, u'\u65b9\u4f4d\u89d2', u'\u4fef\u4ef0\u89d2', cellscale=(1,1), figsize=(200,12), key=key, colorsmap=colorsmap, datarange=data_range, cellcount=[360, vertical_reso])
