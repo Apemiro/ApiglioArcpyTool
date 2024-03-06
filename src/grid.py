@@ -6,6 +6,7 @@ import os.path
 import sys
 sys.path.append(os.path.split(__file__)[0]+"/..")
 import codetool.df as adf
+import codetool.feature as af
 
 
 
@@ -125,13 +126,54 @@ def build_related_grid(xy,data_name,offset=250):
 	cursor = arcpy.da.InsertCursor(data_name, ["SHAPE@"])
 	cursor.insertRow([polygon])
 
+def get_grids_active_df(width,height,max_nrow=20,max_ncol=20):
+	mxd = arcpy.mapping.MapDocument(r"CURRENT")
+	adf = mxd.activeDataFrame
+	ll=adf.extent.lowerLeft
+	ur=adf.extent.upperRight
+	lower=ll.Y
+	left=ll.X
+	upper=ur.Y
+	right=ur.X
+	w=right-left
+	h=upper-lower
+	shapes = []
+	if not (0<w/float(width)<max_ncol): raise Exception("too many columns or invalid width")
+	if not (0<h/float(height)<max_nrow): raise Exception("too many rows or invalid height")
+	x = left
+	while x<right:
+		y = upper
+		while y>lower:
+			shapes.append(arcpy.Polygon(arcpy.Array([arcpy.Point(x,y),arcpy.Point(x+width,y),arcpy.Point(x+width,y-height),arcpy.Point(x,y-height)])))
+			y-=height
+		x+=width
+	return shapes
+	#af.to_file(shapes,"grid","in_memory",True)
 
-
-
-
-
-
-
+def get_gridlines_active_df(width,height,max_nrow=20,max_ncol=20):
+	mxd = arcpy.mapping.MapDocument(r"CURRENT")
+	adf = mxd.activeDataFrame
+	ll=adf.extent.lowerLeft
+	ur=adf.extent.upperRight
+	lower=ll.Y
+	left=ll.X
+	upper=ur.Y
+	right=ur.X
+	w=right-left
+	h=upper-lower
+	shapes = []
+	if not (0<w/float(width)<max_ncol): raise Exception("too many columns or invalid width")
+	if not (0<h/float(height)<max_nrow): raise Exception("too many rows or invalid height")
+	x = left
+	while x<right:
+		shapes.append(arcpy.Polyline(arcpy.Array([arcpy.Point(x,lower),arcpy.Point(x,upper)])))
+		x+=width
+	y = upper
+	while y>lower:
+		shapes.append(arcpy.Polyline(arcpy.Array([arcpy.Point(left,y),arcpy.Point(right,y)])))
+		y-=height
+	return shapes
+	#af.to_file(shapes,"gridline","in_memory",True)
 
 
 
