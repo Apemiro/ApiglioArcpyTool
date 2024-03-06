@@ -31,48 +31,78 @@ def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None,
 	plt.close()
 	gc.collect()
 
-def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=None, cellscale=None, key=lambda arr:sum(arr)):
-	'''argument data need list of tuple (x, y)'''
+def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=None, cellscale=None, key=lambda arr:sum(arr), datarange=None, cellcount=[10,10]):
+	'''
+	argument data need list of tuple (x, y).
+	argument cellscale is enabled only when datarange is None.
+	argument cellcount is enabled only when datarange is NOT None.
+	argument datarange need a 4-element list [xmin, ymin, xmax, ymax]
+	argument cellcount need list [ncol, nrow]
+	'''
 	
 	#计算数据边界
-	x_min = float('+Inf')
-	x_max = float('-Inf')
-	y_min = x_min
-	y_max = x_max
-	for datum in data:
-		if datum[0] < x_min: x_min = datum[0]
-		if datum[0] > x_max: x_max = datum[0]
-		if datum[1] < y_min: y_min = datum[1]
-		if datum[1] > y_max: y_max = datum[1]
-	range_x = float(x_max - x_min)
-	range_y = float(y_max - y_min)
-	population = len(data)
-	if cellscale==None:
-		proportion = range_x / float(range_y)
-		cnt_col = int((population)**0.5)+1
-		cnt_row = int((population / proportion)**0.5)+1
-		cellscale = (range_x / cnt_col, range_y / cnt_row)
-	else:
-		cnt_col = int(range_x / cellscale[0])+1
-		cnt_row = int(range_y / cellscale[1])+1
-		proportion = cellscale[0] / float(cellscale[1])
+	if datarange==None:
+		x_min = float('+Inf')
+		x_max = float('-Inf')
+		y_min = x_min
+		y_max = x_max
+		for datum in data:
+			if datum[0] < x_min: x_min = datum[0]
+			if datum[0] > x_max: x_max = datum[0]
+			if datum[1] < y_min: y_min = datum[1]
+			if datum[1] > y_max: y_max = datum[1]
+		range_x = float(x_max - x_min)
+		range_y = float(y_max - y_min)
+		population = len(data)
+		if cellscale==None:
+			proportion = range_x / float(range_y)
+			cnt_col = int((population)**0.5)+1
+			cnt_row = int((population / proportion)**0.5)+1
+			cellscale = (range_x / cnt_col, range_y / cnt_row)
+		else:
+			cnt_col = int(range_x / cellscale[0])+1
+			cnt_row = int(range_y / cellscale[1])+1
+			proportion = cellscale[0] / float(cellscale[1])
+			
+		reso_x = math.floor(math.log10(cellscale[0]))
+		reso_y = math.floor(math.log10(cellscale[1]))
+		x_min = __floor(x_min, 10**reso_x)
+		y_min = __floor(y_min, 10**reso_y)
+		x_max = __ceil(x_max, 10**reso_x)
+		y_max = __ceil(y_max, 10**reso_y)
 		
-	reso_x = math.floor(math.log10(cellscale[0]))
-	reso_y = math.floor(math.log10(cellscale[1]))
-	x_min = __floor(x_min, 10**reso_x)
-	y_min = __floor(y_min, 10**reso_y)
-	x_max = __ceil(x_max, 10**reso_x)
-	y_max = __ceil(y_max, 10**reso_y)
+		disp_x_min = x_min
+		disp_y_min = y_min
+		disp_x_range = range_x
+		disp_y_range = range_y
+		disp_cnt_col = cnt_col
+		disp_cnt_row = cnt_row
+	else:
+		disp_x_min = datarange[0]
+		disp_y_min = datarange[1]
+		disp_x_max = datarange[2]
+		disp_y_max = datarange[3]
+		if disp_x_max<=disp_x_min: raise Exception("invalid datarange: xmax<=xmin")
+		if disp_y_max<=disp_y_min: raise Exception("invalid datarange: ymax<=ymin")
+		disp_cnt_col = cellcount[0]
+		disp_cnt_row = cellcount[1]
+		if type(disp_cnt_col*disp_cnt_row)!=int: raise Exception("invalid cellcount: int type expected")
+		disp_x_range = float(disp_x_max - disp_x_min)
+		disp_y_range = float(disp_y_max - disp_y_min)
+		cellscale = (disp_x_range / disp_cnt_col, disp_y_range / disp_cnt_row)
+		reso_x = math.floor(math.log10(cellscale[0]))
+		reso_y = math.floor(math.log10(cellscale[1]))
+		
 	
 	#统计网格中的数据
 	grid_data = []
-	for row in range(cnt_row):
-		grid_data.append([[] for x in range(cnt_col)])
+	for row in range(disp_cnt_row):
+		grid_data.append([[] for x in range(disp_cnt_col)])
 	for datum in data:
-		grid_x = int(cnt_col * (datum[0] - x_min) / range_x)
-		grid_y = int(cnt_row * (datum[1] - y_min) / range_y)
-		if grid_x >= cnt_col: grid_x = cnt_col-1
-		if grid_y >= cnt_row: grid_y = cnt_row-1
+		grid_x = int(disp_cnt_col * (datum[0] - disp_x_min) / disp_x_range)
+		grid_y = int(disp_cnt_row * (datum[1] - disp_y_min) / disp_y_range)
+		if not (0<=grid_x<disp_cnt_col): continue
+		if not (0<=grid_y<disp_cnt_row): continue
 		if len(datum)<3:
 			grid_data[grid_y][grid_x].append(1)
 		else:
@@ -81,8 +111,8 @@ def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=
 	
 	#计算画幅大小
 	if figsize==None:
-		fig_w = cnt_col * 0.5
-		fig_h = cnt_row * 0.5
+		fig_w = disp_cnt_col * 0.5
+		fig_h = disp_cnt_row * 0.5
 		if fig_w <  1: fig_w = 1
 		if fig_w > 50: fig_w = 50
 		if fig_h <  1: fig_h = 1
@@ -103,22 +133,22 @@ def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=
 	psm = axs.pcolormesh(plot_data, cmap = colorsmap, shading='nearest')
 	axs.grid(True, linestyle='-', color='White', linewidth=3)
 	fig.colorbar(psm, ax=axs, orientation=orientation, pad=pad)
-	plt.xlim(0, cnt_col)
-	plt.ylim(0, cnt_row)
+	plt.xlim(0, disp_cnt_col)
+	plt.ylim(0, disp_cnt_row)
 	plt.xlabel(xlabel ,fontproperties=ch_font)
 	plt.ylabel(ylabel ,fontproperties=ch_font)
 	x_ticks=[]
 	x_digit=max(0,int(-reso_x))
-	while len(set(x_ticks))!=cnt_col+1:
-		x_ticks = [("%."+str(x_digit)+"f")%(x_min+i*cellscale[0],) for i in range(cnt_col+1)]
+	while len(set(x_ticks))!=disp_cnt_col+1:
+		x_ticks = [("%."+str(x_digit)+"f")%(disp_x_min+i*cellscale[0],) for i in range(disp_cnt_col+1)]
 		x_digit += 1
 	y_ticks=[]
 	y_digit=max(0,int(-reso_y))
-	while len(set(y_ticks))!=cnt_row+1:
-		y_ticks = [("%."+str(y_digit)+"f")%(y_min+i*cellscale[1],) for i in range(cnt_row+1)]
+	while len(set(y_ticks))!=disp_cnt_row+1:
+		y_ticks = [("%."+str(y_digit)+"f")%(disp_y_min+i*cellscale[1],) for i in range(disp_cnt_row+1)]
 		y_digit += 1
-	plt.xticks(range(cnt_col+1), x_ticks)
-	plt.yticks(range(cnt_row+1), y_ticks)
+	plt.xticks(range(disp_cnt_col+1), x_ticks)
+	plt.yticks(range(disp_cnt_row+1), y_ticks)
 	fig.savefig(save_filename, bbox_inches='tight')
 	fig.clf()
 	plt.close('all')
