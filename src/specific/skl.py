@@ -265,6 +265,32 @@ def shp_to_landscape(dataset):
 		result.append([pos_x,pos_y,fea["dist"]])
 	return result
 
+def landscape_to_360vectors(ls):
+	'''
+	divide (azimuth, pitch, distance) into 360 groups by pitch. 
+	calculate mean of pitch(radian) * dist(kilometer). 
+	return list of (azimuth, mean). 
+	'''
+	values=[list() for x in range(360)]
+	for v in ls:
+		if v[2]<=0: continue
+		azimuth = int(math.floor(0.5+180.0*v[0]/math.pi))
+		azimuth %= 360
+		values[azimuth].append(v[1]*v[2]/1000.0)
+	result=[]
+	for value in values:
+		vp_cnt = len(value)
+		result.append(sum(value)/float(vp_cnt) if vp_cnt!=0 else 0)
+	return result
+
+def vectors_xyize(list_of_azimuth_radius):
+	result=[]
+	for azimuth, radius in list_of_azimuth_radius:
+		x = radius * math.cos(azimuth)
+		y = radius * math.sin(azimuth)
+		result.append((x,y))
+	return result
+
 def grouped_landscape(ls):
 	orientation_cell = math.pi / 60.0 # 3.degrees
 	group_count = int(2*math.pi / orientation_cell)
@@ -282,14 +308,6 @@ def gls_to_plot(gls,filename):
 	plot.lines(zip(g_min_y,g_max_y),filename+'_y.png','each 3-degree-horizontal angle','radian vertical angle',figsize=[36,3])
 	plot.lines(zip(g_min_dist,g_max_dist),filename+'_dist.png','each 3-degree-horizontal angle','visible distance',figsize=[36,3])
 	#增加K-means聚类出2~3类的聚类系数比较得出的景别判断图
-
-
-
-
-
-
-
-
 
 
 
