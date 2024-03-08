@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mpc
 import matplotlib.font_manager as ftm
 import math
+import numpy
 import gc
 import os
 p=os.path.split(__file__)[0]
@@ -30,6 +31,71 @@ def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None,
 	fig.clf()
 	plt.close()
 	gc.collect()
+
+def vectors(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
+	'''
+	argument data need list of tuple.
+	tuple format: 
+	  (radian, radius) when data_mode="radian" / "r"; 
+	  (degree, radius) when data_mode="degree" / "d"; 
+	  (xcoord, ycoord) when data_mode="cartesian" / "xy". 
+	'''
+	if figsize == None:
+		fig, ax = plt.subplots(subplot_kw={'projection':'polar'})
+	else:
+		fig, ax = plt.subplots(subplot_kw={'projection':'polar'}, figsize=figsize)
+	vec_count = len(data)
+	mode_str = data_mode.lower()
+	if mode_str in ['d','deg','degree']:
+		xs_deg, ys = zip(*data)
+		xs = [x/180.0*math.pi for x in xs_deg]
+	elif mode_str in ['r','rad','radian']:
+		xs, ys = zip(*data)
+	else:
+		xs, ys = [],[]
+		for x,y in data:
+			rho = (x**2+y**2)**0.5
+			phi = numpy.arctan2(y,x)
+			xs.append(phi)
+			ys.append(rho)
+	ax.plot([[0]*vec_count,xs],[[0]*vec_count,ys])
+	fig.savefig(save_filename, dpi=dpi)
+	fig.clf()
+	plt.close()
+	gc.collect()
+
+def skyline(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
+	'''
+	argument data need list of tuple.
+	tuple format: 
+	  (radian, radius) when data_mode="radian" / "r"; 
+	  (degree, radius) when data_mode="degree" / "d"; 
+	  (xcoord, ycoord) when data_mode="cartesian" / "xy". 
+	'''
+	if figsize == None:
+		fig, ax = plt.subplots(subplot_kw={'projection':'polar'})
+	else:
+		fig, ax = plt.subplots(subplot_kw={'projection':'polar'}, figsize=figsize)
+	vec_count = len(data)
+	mode_str = data_mode.lower()
+	if mode_str in ['d','deg','degree']:
+		xs_deg, ys = zip(*data)
+		xs = [x/180.0*math.pi for x in xs_deg]
+	elif mode_str in ['r','rad','radian']:
+		xs, ys = zip(*data)
+	else:
+		xs, ys = [],[]
+		for x,y in data:
+			rho = (x**2+y**2)**0.5
+			phi = numpy.arctan2(y,x)
+			xs.append(phi)
+			ys.append(rho)
+	ax.plot(xs,ys)
+	fig.savefig(save_filename, dpi=dpi)
+	fig.clf()
+	plt.close()
+	gc.collect()
+	return numpy.array(zip(xs,ys))
 
 def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=None, cellscale=None, key=lambda arr:sum(arr), datarange=None, cellcount=[10,10]):
 	'''
