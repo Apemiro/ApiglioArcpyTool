@@ -23,6 +23,8 @@ def angle_between(v1,v2):
 	return res
 
 def vector_combine(list_of_vectors):
+	if len(list_of_vectors)<3:
+		return list_of_vectors
 	vecs = list(list_of_vectors)
 	vecs.sort(key=lambda x:angle(x))
 	nvec = len(vecs)
@@ -37,16 +39,25 @@ def vector_combine(list_of_vectors):
 	if all([dp<0 for dp in dotpds]):
 		return list_of_vectors
 	vecs.pop()
+	min_angle_value = min(angles)
+	min_angle_indice = [i for i,v in enumerate(angles) if v==min_angle_value]
+	max_product = float("-Inf")
+	vec_idx_1 = None
+	for idx in min_angle_indice:
+		if dotpds[idx]>max_product:
+			vec_idx_1 = idx
+			max_product = dotpds[idx]
+	# vec_idx_1 为最小夹角向量对中点积最大的一组的编号
 	vec_idx_1 = np.argmin(angles)
 	vec_idx_2 = vec_idx_1 + 1
-	if vec_idx_2>=nvec: vec_idx_2=0
-	new_vec = vecs[vec_idx_1]+vecs[vec_idx_2]
-	if vec_idx_1 > vec_idx_2:
-		vecs.pop(vec_idx_1)
+	if vec_idx_2<nvec:
+		new_vec = np.add(vecs[vec_idx_1],vecs[vec_idx_2])
 		vecs.pop(vec_idx_2)
+		vecs.pop(vec_idx_1)
 	else:
-		vecs.pop(vec_idx_2)
+		new_vec = np.add(vecs[vec_idx_1],vecs[0])
 		vecs.pop(vec_idx_1)
+		vecs.pop(0)
 	vecs.append(new_vec)
 	return vecs
 	
