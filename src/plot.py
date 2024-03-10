@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as mpc
 import matplotlib.font_manager as ftm
+import matplotlib.gridspec as mgs
 import math
 import numpy
 import gc
@@ -14,25 +15,88 @@ def __floor(num,frac):
 def __ceil(num,frac):
 	return num - num%frac + frac
 
-def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None, ylim=None):
-	if figsize == None:
-		fig = plt.figure()
+def bandplot(subplot_widths, projections=None, figsize=None, gap=0.5):
+	'''
+	argument subplot_widths need list of integer.
+	argument projections need list of string, "cart" or "polar".
+	return list of matplotlib.axis
+	'''
+	if min(subplot_widths)<1 or max(subplot_widths)>10:
+		raise Exception("every subplot_width has to be limited between 1 to 10.")
+	ncol = sum(subplot_widths)
+	if projections==None:
+		projections = ["cart"]*ncol
+	spec = mgs.GridSpec(nrows=1, ncols=ncol, hspace=gap, wspace=gap)
+	'''left=0.1, right=0.9, top=0.9, bottom=0.1'''
+	fig = plt.figure(figsize=figsize)
+	left = 0
+	axes = []
+	while left < ncol:
+		subplot_index = len(axes)
+		width = subplot_widths[subplot_index]
+		projection = 'polar' if projections[subplot_index].lower()=='polar' else None
+		new_axis = fig.add_subplot(spec[0,left:left+width],projection=projection)
+		axes.append(new_axis)
+		left += width
+	return fig, axes
+
+def saveplot(fig, save_filename, dpi=300):
+	fig.savefig(save_filename, dpi=dpi, bbox_inches='tight')
+	fig.clf()
+	plt.close()
+	gc.collect()
+
+def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None, ylim=None, axis=None):
+	if axis==None:
+		if figsize == None:
+			fig = plt.figure()
+		else:
+			fig = plt.figure(figsize=figsize)
+		ax = fig.add_subplot(111)
 	else:
-		fig = plt.figure(figsize=figsize)
-	ax = fig.add_subplot(111)
-	ax.set_xlabel(xlabel)
-	ax.set_ylabel(ylabel)
+		ax = axis
+		fig = axis.figure
+	ax.set_xlabel(xlabel, fontproperties=ch_font)
+	ax.set_ylabel(ylabel, fontproperties=ch_font)
 	if xlim != None:
 		plt.xlim(xlim[0],xlim[1])
 	if ylim != None:
 		plt.ylim(ylim[0],ylim[1])
 	ax.plot(data)
-	fig.savefig(save_filename, dpi=dpi)
-	fig.clf()
-	plt.close()
-	gc.collect()
+	if axis==None:
+		fig.savefig(save_filename, dpi=dpi)
+		fig.clf()
+		plt.close()
+		gc.collect()
 
-def vectors(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
+def scatters(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, cmap='magma_r', xlim=None, ylim=None, axis=None):
+	'''
+	argument data need list of tuple (x, y, depth).
+	'''
+	if axis==None:
+		if figsize == None:
+			fig = plt.figure()
+		else:
+			fig = plt.figure(figsize=figsize)
+		ax = fig.add_subplot(111)
+	else:
+		ax = axis
+		fig = axis.figure
+	ax.set_xlabel(xlabel, fontproperties=ch_font)
+	ax.set_ylabel(ylabel, fontproperties=ch_font)
+	if xlim != None:
+		plt.xlim(xlim[0],xlim[1])
+	if ylim != None:
+		plt.ylim(ylim[0],ylim[1])
+	xs, ys, depths = zip(*data)
+	ax.scatter(xs, ys, s=1, c=depths, cmap=cmap, edgecolor='none')
+	if axis==None:
+		fig.savefig(save_filename, dpi=dpi)
+		fig.clf()
+		plt.close()
+		gc.collect()
+
+def vectors(data, save_filename, figsize=None, dpi=300, data_mode='radian', axis=None):
 	'''
 	argument data need list of tuple.
 	tuple format: 
@@ -40,10 +104,14 @@ def vectors(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
 	  (degree, radius) when data_mode="degree" / "d"; 
 	  (xcoord, ycoord) when data_mode="cartesian" / "xy". 
 	'''
-	if figsize == None:
-		fig, ax = plt.subplots(subplot_kw={'projection':'polar'})
+	if axis==None:
+		if figsize == None:
+			fig, ax = plt.subplots(subplot_kw={'projection':'polar'})
+		else:
+			fig, ax = plt.subplots(subplot_kw={'projection':'polar'}, figsize=figsize)
 	else:
-		fig, ax = plt.subplots(subplot_kw={'projection':'polar'}, figsize=figsize)
+		ax = axis
+		fig = axis.figure
 	vec_count = len(data)
 	mode_str = data_mode.lower()
 	if mode_str in ['d','deg','degree']:
@@ -58,13 +126,14 @@ def vectors(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
 			phi = numpy.arctan2(y,x)
 			xs.append(phi)
 			ys.append(rho)
-	ax.plot([[0]*vec_count,xs],[[0]*vec_count,ys])
-	fig.savefig(save_filename, dpi=dpi)
-	fig.clf()
-	plt.close()
-	gc.collect()
+	ax.plot([[0]*vec_count,xs],[[0]*vec_count,ys],color="red")
+	if axis==None:
+		fig.savefig(save_filename, dpi=dpi)
+		fig.clf()
+		plt.close()
+		gc.collect()
 
-def skyline(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
+def skyline(data, save_filename, figsize=None, dpi=300, data_mode='radian', axis=None):
 	'''
 	argument data need list of tuple.
 	tuple format: 
@@ -72,10 +141,14 @@ def skyline(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
 	  (degree, radius) when data_mode="degree" / "d"; 
 	  (xcoord, ycoord) when data_mode="cartesian" / "xy". 
 	'''
-	if figsize == None:
-		fig, ax = plt.subplots(subplot_kw={'projection':'polar'})
+	if axis==None:
+		if figsize == None:
+			fig, ax = plt.subplots(subplot_kw={'projection':'polar'})
+		else:
+			fig, ax = plt.subplots(subplot_kw={'projection':'polar'}, figsize=figsize)
 	else:
-		fig, ax = plt.subplots(subplot_kw={'projection':'polar'}, figsize=figsize)
+		ax = axis
+		fig = axis.figure
 	vec_count = len(data)
 	mode_str = data_mode.lower()
 	if mode_str in ['d','deg','degree']:
@@ -91,10 +164,11 @@ def skyline(data, save_filename, figsize=None, dpi=300, data_mode='radian'):
 			xs.append(phi)
 			ys.append(rho)
 	ax.plot(xs,ys)
-	fig.savefig(save_filename, dpi=dpi)
-	fig.clf()
-	plt.close()
-	gc.collect()
+	if axis==None:
+		fig.savefig(save_filename, dpi=dpi)
+		fig.clf()
+		plt.close()
+		gc.collect()
 	return numpy.array(zip(xs,ys))
 
 def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=None, cellscale=None, key=lambda arr:sum(arr), datarange=None, cellcount=[10,10]):
@@ -201,8 +275,8 @@ def grids(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, colorsmap=
 	fig.colorbar(psm, ax=axs, orientation=orientation, pad=pad)
 	plt.xlim(0, disp_cnt_col)
 	plt.ylim(0, disp_cnt_row)
-	plt.xlabel(xlabel ,fontproperties=ch_font)
-	plt.ylabel(ylabel ,fontproperties=ch_font)
+	plt.xlabel(xlabel, fontproperties=ch_font)
+	plt.ylabel(ylabel, fontproperties=ch_font)
 	x_ticks=[]
 	x_digit=max(0,int(-reso_x))
 	while len(set(x_ticks))!=disp_cnt_col+1:
