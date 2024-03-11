@@ -37,7 +37,7 @@ if os.path.isdir(input_filename):
 	if not os.path.isdir(output_filename):
 		raise Exception("Ouput should be directory as input is.")
 	fs = os.listdir(input_filename)
-	inputfiles = [path+x for x in fs if x[-4:]=='.dat']
+	inputfiles = ["%s/%s"%(input_filename,x) for x in fs if x[-4:]=='.dat']
 	outputfiles = ["%s/%s.png"%(output_filename,x[:-4]) for x in fs if x[-4:]=='.dat']
 elif os.path.isfile(input_filename):
 	if os.path.exists(output_filename):
@@ -78,7 +78,7 @@ try:
 		dist = list(dist)
 		pitch.sort()
 		dist.sort()
-		aplot.lines(pitch,"#",str_rank, str_pitch, xlim=(0,len(pitch)),ylim=(pitch[0],pitch[-1]),axis=axes[6])
+		aplot.lines(pitch,"#",str_rank, str_pitch, xlim=(0,len(pitch)),ylim=(-0.1,0.2),axis=axes[6])
 		aplot.lines(dist,"#",str_rank ,str_dist ,xlim=(0,len(dist)),ylim=(dist[0],dist[-1]),axis=axes[7])
 		aplot.scatters([(-180.0*x[0]/math.pi,x[1],x[2]) for x in ls], "#", str_azimuth, str_pitch, xlim=(-360,0), ylim=(0.0, +0.2), axis=axes[8])
 

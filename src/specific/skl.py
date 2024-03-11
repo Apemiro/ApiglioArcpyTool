@@ -268,7 +268,7 @@ def shp_to_landscape(dataset):
 def landscape_to_360vectors(ls):
 	'''
 	divide (azimuth, pitch, distance) into 360 groups by pitch. 
-	calculate mean of pitch(radian) * dist(kilometer). 
+	calculate mean of pitch(radian). 
 	return list of (azimuth, mean). 
 	'''
 	values=[list() for x in range(360)]
@@ -276,7 +276,8 @@ def landscape_to_360vectors(ls):
 		if v[2]<=0: continue
 		azimuth = int(math.floor(0.5+180.0*v[0]/math.pi))
 		azimuth %= 360
-		values[azimuth].append(v[1]*v[2]/1000.0)
+		# values[azimuth].append(v[1]*v[2]/1000.0)
+		values[azimuth].append(v[1])
 	result=[]
 	for value in values:
 		vp_cnt = len(value)
