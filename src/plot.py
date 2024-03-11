@@ -59,9 +59,9 @@ def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None,
 	ax.set_xlabel(xlabel, fontproperties=ch_font)
 	ax.set_ylabel(ylabel, fontproperties=ch_font)
 	if xlim != None:
-		plt.xlim(xlim[0],xlim[1])
+		ax.set_xlim(xlim[0],xlim[1])
 	if ylim != None:
-		plt.ylim(ylim[0],ylim[1])
+		ax.set_ylim(ylim[0],ylim[1])
 	ax.plot(data)
 	if axis==None:
 		fig.savefig(save_filename, dpi=dpi)
@@ -85,9 +85,9 @@ def scatters(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, cmap='m
 	ax.set_xlabel(xlabel, fontproperties=ch_font)
 	ax.set_ylabel(ylabel, fontproperties=ch_font)
 	if xlim != None:
-		plt.xlim(xlim[0],xlim[1])
+		ax.set_xlim(xlim[0],xlim[1])
 	if ylim != None:
-		plt.ylim(ylim[0],ylim[1])
+		ax.set_ylim(ylim[0],ylim[1])
 	xs, ys, depths = zip(*data)
 	ax.scatter(xs, ys, s=1, c=depths, cmap=cmap, edgecolor='none')
 	if axis==None:
