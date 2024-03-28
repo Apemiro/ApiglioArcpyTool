@@ -10,10 +10,29 @@ import os
 p=os.path.split(__file__)[0]
 ch_font = ftm.FontProperties(fname=p+'/../assets/fonts/simhei.ttf')
 
+line_styles = ['solid','dashed','dotted','dashdot']
+colors = [(0.12,0.47,0.71), (0.68,0.78,0.91), (1.00,0.50,0.05), (1.00,0.73,0.47), (0.17,0.63,0.17), (0.60,0.87,0.54), (0.84,0.15,0.16), (1.00,0.60,0.59), (0.58,0.40,0.74), (0.77,0.69,0.84), (0.55,0.34,0.29), (0.77,0.61,0.58), (0.89,0.47,0.76), (0.97,0.71,0.82), (0.50,0.50,0.50), (0.78,0.78,0.78), (0.74,0.74,0.13), (0.86,0.86,0.55), (0.09,0.75,0.81), (0.62,0.85,0.90)]
+
+
 def __floor(num,frac):
 	return num - num%frac
 def __ceil(num,frac):
 	return num - num%frac + frac
+
+def list_enum(list_of_list, output_length):
+	count_total = len(list_of_list)
+	count_of_grp = [len(x) for x in list_of_list]
+	acc = [0 for x in range(count_total)]
+	result = []
+	while len(result)<output_length:
+		elem = [(list_of_list[idx][pos]) for idx, pos in enumerate(acc)]
+		result.append(elem)
+		acc[-1]+=1
+		for idx in range(count_total-1,-1,-1):
+			if acc[idx]>=count_of_grp[idx]:
+				acc[idx]=0
+				if idx>0: acc[idx-1]+=1
+	return result
 
 def bandplot(subplot_widths, projections=None, figsize=None, gap=0.5):
 	'''
@@ -63,6 +82,67 @@ def lines(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, xlim=None,
 	if ylim != None:
 		ax.set_ylim(ylim[0],ylim[1])
 	ax.plot(data)
+	if axis==None:
+		fig.savefig(save_filename, dpi=dpi)
+		fig.clf()
+		plt.close()
+		gc.collect()
+
+def percentile(data, save_filename, ylabel, legends, legend_ncols=1, figsize=None, dpi=300, axis=None):
+	'''
+	argument data need list of list of decimal values. 
+	this function sorts each group of values and plot by percentile rank.
+	'''
+	max_value=float('-Inf')
+	min_value=float('+Inf')
+	max_length=0
+	percentile_groups = []
+	for grp in data:
+		cnt = len(grp)
+		if max_length < cnt: max_length = cnt
+		cnt = float(cnt-1)
+		tmp = list(grp)
+		tmp.sort()
+		percentile_groups.append([(index/cnt, value) for index,value in enumerate(tmp)])
+		max_in_tmp = max(tmp)
+		min_in_tmp = min(tmp)
+		if max_in_tmp > max_value: max_value = max_in_tmp
+		if min_in_tmp < min_value: min_value = min_in_tmp
+	if axis==None:
+		if figsize == None:
+			fig = plt.figure()
+		else:
+			fig = plt.figure(figsize=figsize)
+		ax = fig.add_subplot(111)
+	else:
+		ax = axis
+		fig = axis.figure
+	ax.set_xlabel(u'\u4f4d\u5e8f', fontproperties=ch_font)
+	ax.set_ylabel(ylabel, fontproperties=ch_font)
+	ax.set_xlim(0,1)
+	ax.set_ylim(min_value, max_value)
+	
+	
+	xs = []
+	ys = []
+	for idx in range(max_length):
+		xs.append([])
+		ys.append([])
+		for grp in percentile_groups:
+			if idx<len(grp):
+				xs[-1].append(grp[idx][0])
+				ys[-1].append(grp[idx][1])
+			else:
+				xs[-1].append(None)
+				ys[-1].append(None)
+	lines = ax.plot(xs, ys)
+	# style_color = list_enum([line_styles, colors], len(percentile_groups))
+	# lines = []
+	# for idx, grp in enumerate(percentile_groups):
+		# lines.append(ax.plot(zip(*grp),linestyle=style_color[0], color=style_color[1]))
+
+
+	ax.legend(lines, legends, prop=ch_font, ncol=legend_ncols, loc="upper left")
 	if axis==None:
 		fig.savefig(save_filename, dpi=dpi)
 		fig.clf()
