@@ -268,8 +268,8 @@ def shp_to_landscape(dataset):
 def landscape_to_360vectors(ls):
 	'''
 	divide (azimuth, pitch, distance) into 360 groups by pitch. 
-	calculate mean of pitch(radian). 
-	return list of (azimuth, mean). 
+	calculate IQR of pitch(radian). 
+	return list of (azimuth, IQR). 
 	'''
 	values=[list() for x in range(360)]
 	for v in ls:
@@ -281,7 +281,13 @@ def landscape_to_360vectors(ls):
 	result=[]
 	for value in values:
 		vp_cnt = len(value)
-		result.append(sum(value)/float(vp_cnt) if vp_cnt!=0 else 0)
+		if vp_cnt==0:
+			result.append(0)
+		else:
+			q1 = numpy.percentile(value,25)
+			q3 = numpy.percentile(value,75)
+			result.append(q3-q1)
+		# result.append(sum(value)/float(vp_cnt) if vp_cnt!=0 else 0)
 	return result
 
 def vectors_xyize(list_of_azimuth_radius):

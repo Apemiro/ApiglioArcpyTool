@@ -15,6 +15,17 @@ import numpy
 
 input_filename  = arcpy.GetParameterAsText(0)
 output_filename = arcpy.GetParameterAsText(1)
+min_pitch_str = arcpy.GetParameterAsText(2)
+max_pitch_str = arcpy.GetParameterAsText(3)
+try:
+	min_pitch = float(min_pitch_str)
+except:
+	min_pitch = 0.0
+try:
+	max_pitch = float(max_pitch_str)
+except:
+	max_pitch = +0.2
+
 
 '''
 str_rank = 'rank'       # 位序
@@ -80,7 +91,7 @@ try:
 		dist.sort()
 		aplot.lines(pitch,"#",str_rank, str_pitch, xlim=(0,len(pitch)),ylim=(-0.1,0.2),axis=axes[6])
 		aplot.lines(dist,"#",str_rank ,str_dist ,xlim=(0,len(dist)),ylim=(dist[0],dist[-1]),axis=axes[7])
-		aplot.scatters([(-180.0*x[0]/math.pi,x[1],x[2]) for x in ls], "#", str_azimuth, str_pitch, xlim=(-360,0), ylim=(0.0, +0.2), axis=axes[8])
+		aplot.scatters([(-180.0*x[0]/math.pi,x[1],x[2]) for x in ls], "#", str_azimuth, str_pitch, xlim=(-360,0), ylim=(min_pitch, max_pitch), axis=axes[8])
 
 		for idx in range(6):
 			axes[idx].axes.get_yaxis().set_visible(False)
