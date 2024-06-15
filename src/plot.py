@@ -149,7 +149,7 @@ def percentile(data, save_filename, ylabel, legends, legend_ncols=1, figsize=Non
 		plt.close()
 		gc.collect()
 
-def scatters(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, cmap='magma_r', xlim=None, ylim=None, axis=None):
+def scatters(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, cmap='magma_r', xlim=None, ylim=None, axis=None, s=1):
 	'''
 	argument data need list of tuple (x, y, depth).
 	'''
@@ -169,7 +169,7 @@ def scatters(data, save_filename, xlabel, ylabel, figsize=None, dpi=300, cmap='m
 	if ylim != None:
 		ax.set_ylim(ylim[0],ylim[1])
 	xs, ys, depths = zip(*data)
-	ax.scatter(xs, ys, s=1, c=depths, cmap=cmap, edgecolor='none')
+	ax.scatter(xs, ys, s=s, c=depths, cmap=cmap, edgecolor='none')
 	if axis==None:
 		fig.savefig(save_filename, dpi=dpi)
 		fig.clf()

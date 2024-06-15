@@ -15,6 +15,7 @@ import math
 import logline
 import plot
 import struct
+import gc
 
 class SkylineGrid:
 	"指定水平和垂直角度范围及秒单位步长，创建用于天际线轮廓分析的点阵。\nSkylineGrid(a_horiz_range=[0,360],a_zenith_range=[75,105],a_cell_width_second=900,a_cell_height_second=900)"
@@ -222,6 +223,10 @@ def viewpoint_to_landscape(view_point, dem_raster, max_distance, min_distance=0,
 				f.write(struct.pack("<d",row[1]))
 				f.write(struct.pack("<d",row[2]))
 				acc+=1
+	del dem, vis, viewpoint_uv, viewpoint_xy
+	plot.plt.close('all')
+	plot.plt.clf()
+	gc.collect()
 	return landscape
 
 

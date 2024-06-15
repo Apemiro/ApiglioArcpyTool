@@ -4,8 +4,11 @@
 import arcpy
 
 def __active_df_sr():
-	return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
-
+	try:
+		return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
+	except:
+		return None
+	
 def __sr_arg(spatial_reference):
 	if spatial_reference == True:
 		return arcpy.mapping.MapDocument(r"CURRENT").activeDataFrame.spatialReference.exportToString()
@@ -117,6 +120,7 @@ def dict_to_file(list_of_dict,dataset="temp_listdict_export",path="in_memory",sp
 	dataset_full_name = path + '/' + dataset
 	for idx in range(len(field_infos)):
 		field_name = field_infos[idx]["name"]
+		field_name = arcpy.ValidateFieldName(field_name[:9]) # 暴力解决shp字段长度不能超过10，以后再考虑怎么处理比较妥当
 		field_type = field_infos[idx]["type"]
 		if field_name in [x.name for x in arcpy.Describe(dataset_full_name).fields]:
 			continue

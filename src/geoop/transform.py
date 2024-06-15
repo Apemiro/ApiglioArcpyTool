@@ -60,15 +60,20 @@ def scaling(geo,offset,origin=[0,0]):
 		return(arcpy.Polyline(arcpy.Array(arr)))
 	elif type(geo) == arcpy.geometries.Polygon:
 		arr=geo.getPart()
+		new_parts = []
 		for i in arr:
+			new_vertices = []
 			for j in i:
-				i.X-=x_origin
-				i.Y-=y_origin
-				j.X*=x_times
-				j.Y*=y_times
-				i.X+=x_origin
-				i.Y+=y_origin
-		return(arcpy.Polygon(arcpy.Array(arr)))
+				v=j
+				v.X -= x_origin
+				v.Y -= y_origin
+				v.X *= x_times
+				v.Y *= y_times
+				v.X += x_origin
+				v.Y += y_origin
+				new_vertices.append(v)
+			new_parts.append(new_vertices)
+		return(arcpy.Polygon(arcpy.Array(new_parts)))
 	else:
 		print(type(geo))
 		raise Exception("错误的文件几何类型")
