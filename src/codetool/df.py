@@ -142,17 +142,34 @@ def createViewCircle(segment=24,data_frame_name="",in_memory_feature="TempViewCi
 def createViewCenter(data_frame_name="",in_memory_feature="TempViewPoint",has_z=False,has_m=False):
 	#if not check_data_frame_sr_valid(data_frame_name):
 	#	raise Exception("未知坐标系不能生成目标要素。")
-	zz="Disabled"
-	mm="Disabled"
-	if has_z: zz="Enabled"
-	if has_m: mm="Enabled"
+	zz = "Enabled" if has_z else "Disabled"
+	mm = "Enabled" if has_m else "Disabled"
 	#sr=str_data_frame_sr
 	res=__get_extent(data_frame_name)
-	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POINT")
+	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POINT", has_z=zz, has_m=mm)
 	#arcpy.management.DefineProjection(in_memory_feature,sr)
 	pts = arcpy.Point(res[0][0],res[0][1],0,0)
 	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
 	cursor.insertRow([pts])
+
+def createPoints(xys,data_frame_name="",in_memory_feature="TempViewPoint",has_z=False,has_m=False):
+	#if not check_data_frame_sr_valid(data_frame_name):
+	#	raise Exception("未知坐标系不能生成目标要素。")
+	zz = "Enabled" if has_z else "Disabled"
+	mm = "Enabled" if has_m else "Disabled"
+	
+	#sr=str_data_frame_sr
+	
+	if not isinstance(xys, list):
+		xys = [xys]
+	
+	arcpy.management.CreateFeatureclass("in_memory", in_memory_feature, "POINT", has_z=zz, has_m=mm)
+	#arcpy.management.DefineProjection(in_memory_feature,sr)
+	cursor = arcpy.da.InsertCursor(in_memory_feature, ["SHAPE@"])
+	for p in xys:
+		tmpPoint = arcpy.Point(p[0],p[1],0,0)
+		cursor.insertRow([tmpPoint])
+	del cursor
 
 def list_layer(wildcard="*",data_frame_name=""):
 	mxd=document()

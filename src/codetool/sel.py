@@ -72,4 +72,22 @@ def all_saw(layer):
 	arcpy.RefreshActiveView()
 	arcpy.RefreshTOC()
 
+def select_by_field(layer, fields, criterion):
+	'''根据字段值条件选择'''
+	mxd = arcpy.mapping.MapDocument("Current")
+	lyrs = arcpy.mapping.ListLayers(mxd, layer)
+	if len(lyrs) != 1:
+		raise Exception("存在重名图层，不能确定选择操作。")
+	lyr = lyrs[0]
+	id_field = arcpy.Describe(lyr).fields[0].name
+	cursor = arcpy.da.SearchCursor(lyr, [id_field]+fields)
+	selected_ids = []
+	for row in cursor:
+		if criterion(*row[1:3]): selected_ids.append(row[0])
+	del row, cursor
+	lyr.setSelectionSet("NEW",[])
+	lyr.setSelectionSet("NEW",selected_ids)
+	arcpy.RefreshActiveView()
+	arcpy.RefreshTOC()
+
 

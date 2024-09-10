@@ -27,4 +27,11 @@ export_path    = arcpy.GetParameterAsText(4)
 name_field     = arcpy.GetParameterAsText(5)
 if name_field == "": name_field = None
 export_formats = arcpy.GetParameter(6)
-src.specific.skl.viewpoints_to_landscape(view_points, dem_raster, max_dist, min_dist, export_path, name_field, export_formats)
+obs_height     = arcpy.GetParameterAsText(7)
+if obs_height == "": obs_height = "20.0"
+target_points  = arcpy.GetParameterAsText(8)
+if target_points == "": target_points = None
+tp_field_name  = arcpy.GetParameterAsText(9)
+if tp_field_name == "": tp_field_name = None
+
+src.specific.skl.viewpoints_to_landscape(view_points, dem_raster, max_dist, min_dist, export_path, name_field, export_formats=export_formats, obs_height=obs_height, target_points=target_points, tp_name_field=tp_field_name)

@@ -16,6 +16,7 @@ import logline
 import plot
 import struct
 import gc
+import io
 
 class SkylineGrid:
 	"指定水平和垂直角度范围及秒单位步长，创建用于天际线轮廓分析的点阵。\nSkylineGrid(a_horiz_range=[0,360],a_zenith_range=[75,105],a_cell_width_second=900,a_cell_height_second=900)"
@@ -145,29 +146,62 @@ def vector_substract(a,b):
 def vector_length(a):
 	return (a[0]**2+a[1]**2)**0.5
 
-# 返回结果[ls]  其中ls : array[0..2] = [x,y,dist]
-# x为方位角: E=0; N=pi/2; W=pi; S=3*pi/2
-# y为仰角：horizontal=0; top=pi/2; bottom=-pi/2
-def viewpoint_to_landscape(view_point, dem_raster, max_distance, min_distance=0, landscape_fn='TempViewDist', export_path='in_memory',export_formats=["shp","dat"]):
+def viewpoint_to_landscape(view_point, dem_raster, max_distance, min_distance=0, landscape_fn='TempViewDist', export_path='in_memory', export_formats=["shp","dat"], list_of_view_target=[], obs_height='20.0'):
+	'''
+	返回结果[ls]  其中ls : array[0..2] = [x,y,dist] \n
+	x为方位角: E=0; N=pi/2; W=pi; S=3*pi/2 \n
+	y为仰角：horizontal=0; top=pi/2; bottom=-pi/2 \n
+	list_of_view_target = [[PointGeometry, label], ...]
+	'''
 	export_formats = [x.lower() for x in export_formats]
 	cw = arcpy.Describe(dem_raster).meanCellWidth
 	ch = arcpy.Describe(dem_raster).meanCellHeight
 	cw_sqr = cw * cw
 	ch_sqr = ch * ch
-	if not isinstance(view_point,arcpy.PointGeometry):
+	if not isinstance(view_point, arcpy.PointGeometry):
 		raise Exception('view_point 不是arcpy.PointGeometry')
+	for point_n_label in list_of_view_target:
+		point = point_n_label[0]
+		label = point_n_label[1]
+		if not isinstance(point, arcpy.PointGeometry):
+			raise Exception('list_of_view_target["%s"] 不是arcpy.PointGeometry'%(label,))
+		
 	lng = view_point.firstPoint.X
 	lat = view_point.firstPoint.Y
 	dem = arcpy.RasterToNumPyArray(dem_raster)
 	viewpoint_uv = raster.xy_to_uv(dem_raster, [lng, lat])
 	viewpoint_xy = raster.uv_to_xy(dem_raster, viewpoint_uv)
+	
+	target_azimuth_pitch_label_uv = []
+	elev_vp = dem[viewpoint_uv[1]][viewpoint_uv[0]]
+	for point_n_label in list_of_view_target:
+		target_point = point_n_label[0]
+		target_label = point_n_label[1]
+		tp_lng = target_point.firstPoint.X
+		tp_lat = target_point.firstPoint.Y
+		target_point_uv = raster.xy_to_uv(dem_raster, [tp_lng, tp_lat])
+		target_point_xy = raster.uv_to_xy(dem_raster, target_point_uv)
+		
+		tp_vec = vector_substract(target_point_xy, viewpoint_xy)
+		tp_azimuth = vector_angle(tp_vec)
+		if tp_azimuth != None:
+			tp_dist = vector_length(tp_vec)
+			elev_tp = dem[target_point_uv[1]][target_point_uv[0]]
+			# elev = dem[pi][pj] #改用仰角而不是高度
+			tp_pitch = math.atan((elev_tp - elev_vp)/tp_dist)
+		else:
+			tp_pitch = None
+		
+		target_azimuth_pitch_label_uv.append([tp_azimuth, tp_pitch, target_label, target_point_uv])
+	
 	view_point_fn = 'TempViewPoint'
 	vis_file_name = 'Visibility'
-	obs_height = "20.0"
+	# obs_height = "20.0"
 	if arcpy.Exists("in_memory/"+view_point_fn):
 		arcpy.management.Delete("in_memory/"+view_point_fn)
 	if arcpy.Exists("in_memory/"+vis_file_name):
 		arcpy.management.Delete("in_memory/"+vis_file_name)
+	a_curvature_correction = "FLAT_EARTH" # "CURVED_EARTH"
 	codetool.feature.to_file([view_point],view_point_fn,path='in_memory')
 	arcpy.Visibility_3d(in_raster=dem_raster, in_observer_features="in_memory/"+view_point_fn, out_raster="in_memory/"+vis_file_name, out_agl_raster="", analysis_type="OBSERVERS", nonvisible_cell_value="ZERO", z_factor="1", curvature_correction="FLAT_EARTH", refractivity_coefficient="0.13", surface_offset="", observer_elevation="", observer_offset=obs_height, inner_radius="", outer_radius="", horizontal_start_angle="", horizontal_end_angle="", vertical_upper_angle="", vertical_lower_angle="")
 	vis = arcpy.RasterToNumPyArray("in_memory/"+vis_file_name)
@@ -223,23 +257,42 @@ def viewpoint_to_landscape(view_point, dem_raster, max_distance, min_distance=0,
 				f.write(struct.pack("<d",row[1]))
 				f.write(struct.pack("<d",row[2]))
 				acc+=1
+	if True:
+		with io.open("%s/%s.tp.log"%(export_path,valid_fn),"w") as f:
+			# f.write(u"azimuth,pitch,label\n")
+			tp_log = []
+			for apluv in target_azimuth_pitch_label_uv:
+				uv_row = apluv[3][1]
+				uv_col = apluv[3][0]
+				if vis[uv_row][uv_col] != 0: tp_log.append(apluv[:3])
+			#	f.write(u"%f,%f,\"%s\"\n"%tuple(apluv[:3]))
+			#f.write(u"%s"%([x[:3] for x in target_azimuth_pitch_label_uv if vis[x[1]][x[0]]!=0],))
+			f.write(u"%s"%(tp_log,))
+	
 	del dem, vis, viewpoint_uv, viewpoint_xy
-	plot.plt.close('all')
-	plot.plt.clf()
+	# plot.plt.close('all')
+	# plot.plt.clf() # 这两句怎么写到这来了
 	gc.collect()
-	return landscape
+	return landscape, target_azimuth_pitch_label_uv
 
 
-def viewpoints_to_landscape(view_points, dem_raster, max_dist, min_dist, export_path, name_field=None, export_formats=["shp","dat"]):
+def viewpoints_to_landscape(view_points, dem_raster, max_dist, min_dist, export_path, name_field=None, export_formats=["shp","dat"], obs_height='20.0', target_points=None, tp_name_field=None):
+	fn = 'before running any file'
 	try:
+	#if True:
 		codetool.df.BeginUpdate()
 		vps = codetool.feature.to_dict(view_points)
+		if target_points != None:
+			tps_raw = codetool.feature.to_dict(target_points)
+			tps = [[x["SHAPE@"],"%s"%(x.get(tp_name_field),)] for x in tps_raw]
+		else:
+			tps = []
 		if name_field == None:
 			nf = arcpy.Describe(view_points).fields[0].name
 		else:
 			nf = name_field
 		for vp, fn in [(x["SHAPE@"],x[nf]) for x in vps]:
-			viewpoint_to_landscape(vp, dem_raster, max_dist, min_dist, "%s"%(fn,), export_path, export_formats)
+			viewpoint_to_landscape(vp, dem_raster, max_dist, min_dist, "%s"%(fn,), export_path, export_formats, list_of_view_target=tps, obs_height=obs_height)
 	except Exception as err:
 		logline.log("Failed: %s"%(fn,),"e")
 		for arg in err.args:
