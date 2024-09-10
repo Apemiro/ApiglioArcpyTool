@@ -70,6 +70,10 @@ def sector(point,orie_deg_1,orie_deg_2,radius,segment=96):
 	return arcpy.Polygon(arcpy.Array(points))
 	
 
+def polyline_offset_point(polyline, x, y):
+	'''	根据给定的polyline计算生成偏移点Arcpy.Point， x为起始点到终点的距离行进距离， y为垂直于行进方向的偏移， 左侧为正方向。'''
+	pass
+
 def add_face(coords,dataset="TempFace",path="in_memory"):
 	geo=ploygon(coords)
 	if geo.firstPoint.Z<>None:

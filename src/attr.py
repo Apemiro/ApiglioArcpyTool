@@ -4,6 +4,9 @@ import arcpy.sa
 import arcpy.da
 import math
 
+from random import seed as randomize
+from random import random as get_random
+
 
 def __has_field(dataset,field):
 	target_fields = filter(lambda x:x.name==field,arcpy.Describe(dataset).fields)
@@ -251,11 +254,20 @@ def HardLinkGenerator(dataset,targetpath):
 	fout.close()
 
 
-
-
-
-
-
+def random_field_values(dataset, field_name, rand_value_func=lambda x:x*2.0-1.0):
+	fields = arcpy.Describe(dataset).fields
+	field_names = [x.name for x in fields]
+	field_types = [x.type for x in fields]
+	try:
+		field_index = field_names.index(field_name)
+	except:
+		raise Exception("Field %s is not found"%(field_name,))
+	if not field_types[field_index] in ['Double', 'Single']:
+		raise Exception("Invalid field type %s is found"%(field_types[field_index],))
+	with arcpy.da.UpdateCursor(dataset, [field_name]) as cursor:
+		for row in cursor:
+			row = [rand_value_func(get_random())]
+			cursor.updateRow(row)
 
 
 
