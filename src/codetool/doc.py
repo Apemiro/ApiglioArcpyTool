@@ -5,6 +5,7 @@ import os
 import os.path
 import math
 from feature import to_list
+from feature import to_dict
 
 _export_ext_func_ = {"png":arcpy.mapping.ExportToPNG,
 					 "jpg":arcpy.mapping.ExportToJPEG,
@@ -51,5 +52,36 @@ def export_by_features(path,feature,field=None,ext="png",resolution=None):
 	for ii in range(fcount):
 		dfm.panToExtent(fea[ii].extent)
 		_export_ext_func_[ext.lower()](mxd,path+'/'+filename[ii]+"."+ext,resolution=resolution)
+	
+
+def __extent_scale(ext, factor):
+	wInc = factor * (ext.XMax - ext.XMin)
+	hInc = factor * (ext.YMax - ext.YMin)
+	return arcpy.Extent( \
+		ext.XMin - wInc, ext.YMin - hInc, \
+		ext.XMax + wInc, ext.YMax + hInc, \
+		ext.ZMin, ext.ZMax, \
+		ext.MMin, ext.MMax \
+	)
+
+# 类似于数据驱动页面，将图层设置为透明，再设置选中图元的符号类型，此函数会依次缩放至图元、将其选中并导出
+def export_by_layer_selection(path, layer, identical_field=None, ext="png", resolution=None, scale_factor=0.0):
+	fea = to_dict(layer.dataSource)
+	fcount = len(fea)
+	index_field = arcpy.Describe(layer.dataSource).fields[0].name
+	mxd=cmxd()
+	dfm=cmxd().activeDataFrame
+	if not os.path.exists(path):
+		os.makedirs(path)
+	for ii in range(fcount):
+		filename = fea[ii].get(identical_field)
+		if filename==None:
+			filename = fea[ii][index_field]
+		layer.setSelectionSet("NEW",[fea[ii][index_field]])
+		extent_view = __extent_scale(fea[ii]["SHAPE@"].extent, scale_factor)
+		#dfm.panToExtent(extent_view)
+		dfm.extent = extent_view
+		dfm.name = filename
+		_export_ext_func_[ext.lower()](mxd,path+'/'+filename+"."+ext,resolution=resolution)
 	
 	
