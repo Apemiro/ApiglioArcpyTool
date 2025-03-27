@@ -52,5 +52,3 @@ def extent_scale(ext, factor):
 
 
 
-
-

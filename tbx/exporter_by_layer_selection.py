@@ -18,4 +18,4 @@ dpi = int(arcpy.GetParameterAsText(4))
 if field_name=="#" or field_name=="":
 	field_name=None
 
-src.codetool.doc.export_by_layer_selection(path_name, layer, field_name, ext,dpi, 0.1)
+src.codetool.doc.export_by_layer_selection(path_name, layer, field_name, ext,dpi, 0.075)
