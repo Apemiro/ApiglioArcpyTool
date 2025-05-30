@@ -86,9 +86,9 @@ def export_by_layer_selection(path, layer, identical_field=None, ext="png", reso
 		if feature_ratio>1.05 and dfm_ratio<1.05:
 			dfm.rotation = -90
 		elif feature_ratio<1.05 and dfm_ratio>1.05:
-			dfm.rotation = -90
+			dfm.rotation = -90.0
 		else:
-			dfm.rotation = 0
+			dfm.rotation = 0.0
 		extent_view = __extent_scale(extent_feature, scale_factor)
 		#dfm.panToExtent(extent_view)
 		dfm.extent = extent_view
