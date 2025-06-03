@@ -3,6 +3,7 @@ import arcpy
 import arcpy.sa
 import arcpy.da
 import math
+import datetime
 
 from random import seed as randomize
 from random import random as get_random
@@ -58,14 +59,60 @@ def FieldUpdater(dataset,field_name,rule=lambda x:x):
 		cursor.updateRow(row)
 	del row,cursor
 	
-def FieldTypeChanger(dataset,field_name,field_type,field_precision=0,field_scale=0):
-	arcpy.AddField_management(dataset, field_name+"_", field_type, field_precision, field_scale, field_scale)
-	func_name={"TEXT":"str","FLOAT":"float","DOUBLE":"float","SHORT":"int","LONG":"long","DATE":"","BLOB":"","RASTER":"","GUID":""}
-	arcpy.CalculateField_management(dataset, field_name+"_", func_name[field_type.upper()]+"( !"+field_name+"! )", "PYTHON_9.3", "#")
-	arcpy.DeleteField_management(dataset,field_name)
-	arcpy.AddField_management(dataset, field_name, field_type, field_precision, field_scale, field_scale)
-	arcpy.CalculateField_management(dataset, field_name, "!"+field_name+"_!", "PYTHON_9.3", "#")
-	arcpy.DeleteField_management(dataset,field_name+"_")
+def FieldTypeChanger(dataset, field_name, field_type, field_scale_or_length=0, field_precision=0, change_field_name=None, new_alias=None, delete_bak_field=False):
+	'''临时字段最大长度为255，请注意可能存在截断丢失信息的情况。'''
+	bak_field_name = (("bak_"+field_name.encode("utf8"))[:10]).decode("utf8") # 为了兼容Shapefile字段限制，全部截断到10字符
+	bak_field_size = 255 # 如果字段值更大还会丢失，还可以再加判断
+	func_name_options = \
+		{\
+		"TEXT":str,\
+		"FLOAT":float,\
+		"DOUBLE":float,\
+		"SHORT":lambda x:int(float(x)),\
+		"LONG":lambda x:int(float(x)),\
+		"DATE":lambda x:datetime.datetime.strptime(x,"%Y-%m-%d %H:%M:%S"),\
+		"BLOB":lambda x:x,\
+		"RASTER":lambda x:x,\
+		"GUID":lambda x:x\
+		}
+	if field_type.upper() not in func_name_options:
+		arcpy.AddError(u"无效的字段类型："%(field_type,))
+		raise Exception(u"无效的字段类型："%(field_type,))
+	
+	try:
+		#始终创建文本字段，最大可能保留信息
+		arcpy.management.AddField(dataset, bak_field_name, "TEXT", bak_field_size)
+	except:
+		arcpy.AddError(u"未能成功创建临时字段，字段修改失败。")
+		raise Exception(u"未能成功创建临时字段，字段修改失败。")
+	
+	cursor = arcpy.da.UpdateCursor(dataset, [field_name, bak_field_name])
+	for row in cursor:
+		row[1] = str(row[0])
+		cursor.updateRow(row)
+	del cursor
+	
+	arcpy.management.DeleteField(dataset, field_name)
+	
+	new_field_name = field_name if change_field_name==None else change_field_name
+	
+	# 这里创建的字段
+	if field_type in ["TEXT", "BLOB"]:
+		arcpy.management.AddField(dataset, new_field_name, field_type, field_length=field_scale_or_length, field_alias=new_alias)
+	else:
+		arcpy.management.AddField(dataset, new_field_name, field_type, field_precision=field_precision, field_scale=field_scale_or_length, field_alias=new_alias)
+	func_name = func_name_options[field_type.upper()]
+	cursor = arcpy.da.UpdateCursor(dataset, [bak_field_name, new_field_name])
+	for row in cursor:
+		row[1] = func_name(row[0])
+		cursor.updateRow(row)
+	del cursor
+	if len(arcpy.GetParameterInfo())==0:
+		import ctypes
+		ctypes.windll.user32.MessageBoxW(0, u"直接在python窗口调用FieldTypeChanger需要在表视图中重新打开修改的数据，否则不会触发更新。", u"表视图未更新", 0x40)
+	
+	if delete_bak_field:
+		arcpy.management.DeleteField(dataset, bak_field_name)
 	
 	
 	
