@@ -17,7 +17,7 @@ if scale_field=="#" or scale_field=="":
 	scale_field=None
 
 
-ars.scaling(input_feature, output_feature, scale_base, scale_field)
+ars.scaling(input_feature, output_feature, float(scale_base), scale_field)
 
 
 '''

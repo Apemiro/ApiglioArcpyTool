@@ -5,6 +5,7 @@ import os
 import os.path
 import math
 from feature import to_list
+from feature import to_dict
 
 _export_ext_func_ = {"png":arcpy.mapping.ExportToPNG,
 					 "jpg":arcpy.mapping.ExportToJPEG,
@@ -52,4 +53,46 @@ def export_by_features(path,feature,field=None,ext="png",resolution=None):
 		dfm.panToExtent(fea[ii].extent)
 		_export_ext_func_[ext.lower()](mxd,path+'/'+filename[ii]+"."+ext,resolution=resolution)
 	
+
+def __extent_scale(ext, factor):
+	wInc = factor * (ext.XMax - ext.XMin)
+	hInc = factor * (ext.YMax - ext.YMin)
+	return arcpy.Extent( \
+		ext.XMin - wInc, ext.YMin - hInc, \
+		ext.XMax + wInc, ext.YMax + hInc, \
+		ext.ZMin, ext.ZMax, \
+		ext.MMin, ext.MMax \
+	)
+
+# 类似于数据驱动页面，将图层设置为透明，再设置选中图元的符号类型，此函数会依次缩放至图元、将其选中并导出
+# 数据框长宽比大于1.05时，根据要素长宽比旋转数据框视图角度
+def export_by_layer_selection(path, layer, identical_field=None, ext="png", resolution=None, scale_factor=0.0):
+	fea = to_dict(layer.dataSource)
+	fcount = len(fea)
+	index_field = arcpy.Describe(layer.dataSource).fields[0].name
+	mxd=cmxd()
+	dfm=cmxd().activeDataFrame
+	dfm_ratio = dfm.elementWidth / dfm.elementHeight
+	dfm_rotation_origin = dfm.rotation
+	if not os.path.exists(path):
+		os.makedirs(path)
+	for ii in range(fcount):
+		filename = fea[ii].get(identical_field)
+		if filename==None:
+			filename = fea[ii][index_field]
+		layer.setSelectionSet("NEW",[fea[ii][index_field]])
+		extent_feature = fea[ii]["SHAPE@"].extent
+		feature_ratio = extent_feature.width / extent_feature.height
+		if feature_ratio>1.05 and dfm_ratio<1.05:
+			dfm.rotation = -90
+		elif feature_ratio<1.05 and dfm_ratio>1.05:
+			dfm.rotation = -90.0
+		else:
+			dfm.rotation = 0.0
+		extent_view = __extent_scale(extent_feature, scale_factor)
+		#dfm.panToExtent(extent_view)
+		dfm.extent = extent_view
+		dfm.name = filename
+		_export_ext_func_[ext.lower()](mxd,path+'/'+filename+"."+ext,resolution=resolution)
+	dfm.rotation = dfm_rotation_origin
 	
