@@ -1,10 +1,11 @@
 # -*- coding: UTF-8 -*-
 # planning tool
+# road tool
 
 import arcpy
 import os.path
 import sys
-sys.path.append(os.path.split(__file__)[0]+"/..")
+sys.path.append(os.path.split(__file__)[0]+"/../..")
 import codetool.feature as af
 
 
@@ -28,7 +29,6 @@ def __find_nearest(target_point, points):
 	return res
 
 
-# road
 
 def edge_line_closure(input_lines, output_lines, max_dist=None):
 	'''在线要素中找到所有线要素端头，筛选出其中互为最近点的点对创建短线。建议将断线整合后再使用此工具，避免生成一些重合线。'''
