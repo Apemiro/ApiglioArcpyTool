@@ -33,5 +33,4 @@ elif title_str == u"\u5730\u7c7b\u540d\u79f0":
 	title_val = "mc"
 else:
 	title_val = "dm+mc"
-arcpy.AddMessage(landuse_fields)
 lu.summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, unit=unit_val, title=title_val, sum_caption=sumcap_str, compact=compact, solo_bracket=bracket)

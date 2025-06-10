@@ -74,7 +74,14 @@ def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, **excel
 	style_center.alignment = alignment
 	style_ctbold = copy.deepcopy(style_center)
 	style_ctbold.font.bold = True
+	style_percent = copy.deepcopy(style_center)
+	style_perbold = copy.deepcopy(style_ctbold)
+	style_percent.num_format_str = '0.00%'
+	style_perbold.num_format_str = '0.00%'
 	
+	total_area = 0.0
+	for key in area_map:
+		total_area += area_map[key]
 	dm_list = LanduseMap.dm2mc.keys()
 	dm_list.sort()
 	area_map_list = area_map.keys()
@@ -100,7 +107,9 @@ def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, **excel
 				if row-first_dm2_row>1:
 					ws.write_merge(first_dm2_row, row-1, 1, 1, title_func(prev_dm2), style_center)
 					ws.write(row-1, 2, sum_caption, style_ctbold)
-					ws.write(row-1, 3, dm2_sum_area/unit_division, style_ctbold)
+					value_label = dm2_sum_area/unit_division
+					ws.write(row-1, 3, value_label, style_ctbold)
+					ws.write(row-1, 4, xlwt.Formula("10000*$d%d/%f"%(row, total_area)), style_perbold)
 				else:
 					if prev_dm3==prev_dm2 or (not solo_bracket):
 						ws.write_merge(row-1, row-1, 1, 2, title_func(prev_dm2), style_center)
@@ -119,7 +128,9 @@ def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, **excel
 				if row-first_dm1_row>1:
 					ws.write_merge(first_dm1_row, row-1, 0, 0, title_func(prev_dm1), style_center)
 					ws.write_merge(row-1, row-1, 1, 2, sum_caption, style_ctbold)
-					ws.write(row-1, 3, dm1_sum_area/unit_division, style_ctbold)
+					value_label = dm1_sum_area/unit_division
+					ws.write(row-1, 3, value_label, style_ctbold)
+					ws.write(row-1, 4, xlwt.Formula("10000*$d%d/%f"%(row, total_area)), style_perbold)
 				else:
 					if prev_dm3==prev_dm1 or (not solo_bracket):
 						ws.write_merge(row-1, row-1, 0, 2, title_func(prev_dm1), style_center)
@@ -133,18 +144,23 @@ def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, **excel
 		area = area_map.get(dm3)
 		if dm3 in LanduseMap.dm2mc:
 			ws.write(row, 2, title_func(dm3), style_center)
-			# ws.write(row, 4, title_func(dm3), style_center)
 		if area!=None:
 			dm0_sum_area += area
 			dm1_sum_area += area
 			dm2_sum_area += area
-			ws.write(row, 3, area/unit_division, style_center)
+			value_label = area/unit_division
+			ws.write(row, 3, value_label, style_center)
+			ws.write(row, 4, xlwt.Formula("10000*$d%d/%f"%(row+1, total_area)), style_percent)
 		else:
 			ws.write(row, 3, 0.0, style_center)
+			ws.write(row, 4, xlwt.Formula("10000*$d%d/%f"%(row+1, total_area)), style_percent)
 		row += 1
 		prev_dm3 = dm3
 	ws.write_merge(row-1, row-1, 0, 2, sum_caption, style_ctbold)
-	ws.write(row-1, 3, dm0_sum_area/unit_division, style_ctbold)
+	value_label = dm0_sum_area/unit_division
+	ws.write(row-1, 3, value_label, style_ctbold)
+	ws.write(row-1, 4, xlwt.Formula("10000*$d%d/%f"%(row, total_area)), style_perbold)
+	
 	
 	wb.save(export_xlsx)
 	print("hell")
