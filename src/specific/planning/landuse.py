@@ -15,11 +15,12 @@ import copy
 
 
 
-def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, **excel_options):
+def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, landuse_map='TSP', **excel_options):
 	'''
 	landuse_fields按照顺序依次在LanduseMap中寻找对应用地类型，均未找到时报错；
 	excel_options控制表格细节：单位unit=[hm2(ha), km2, m2]; 条目title=[mc, dm, dm+mc]；剔除空项compact=[True, False]；总合项文字sum_caption=["合计", ...]；单一子类合并时注释子类solo_bracket=[True, False]
 	'''
+	LanduseMap.use_switch(landuse_map)
 	#LanduseMap.use_GB50137() # 目前是手动修改兼容GB50137
 	area_map = {}
 	field_count = len(landuse_fields)

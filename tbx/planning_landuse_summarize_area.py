@@ -21,6 +21,7 @@ title_str       = arcpy.GetParameterAsText(6)
 sumcap_str      = arcpy.GetParameterAsText(7)
 compact         = arcpy.GetParameter(8)
 bracket         = arcpy.GetParameter(9)
+landuse_map_str = arcpy.GetParameter(10)
 if unit_str == u'\u516c\u9877':
 	unit_val = "hm2"
 elif unit_str == u"\u5e73\u65b9\u7c73":
@@ -33,4 +34,4 @@ elif title_str == u"\u5730\u7c7b\u540d\u79f0":
 	title_val = "mc"
 else:
 	title_val = "dm+mc"
-lu.summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, unit=unit_val, title=title_val, sum_caption=sumcap_str, compact=compact, solo_bracket=bracket)
+lu.summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, landuse_map=landuse_map_str, unit=unit_val, title=title_val, sum_caption=sumcap_str, compact=compact, solo_bracket=bracket)
