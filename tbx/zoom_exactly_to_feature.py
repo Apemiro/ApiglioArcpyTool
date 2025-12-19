@@ -10,5 +10,5 @@ import src.codetool.doc
 lyr = arcpy.GetParameter(0)
 mxd = arcpy.mapping.MapDocument("current")
 dfm = mxd.activeDataFrame
-ext = arcpy.Describe(lyr).extent
+ext = lyr.getSelectedExtent()
 dfm.extent = ext
