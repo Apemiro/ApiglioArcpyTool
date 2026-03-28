@@ -169,9 +169,78 @@ def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, landuse
 	return area_map
 	
 
+# 生成批量插入CAD控制指标块的autoLisp代码
+# prop_map = {"块参数":"字段名", ...}
+# 测试：res=alu.conv_autolisp_insertKZBlock("规划用地0127","e:/temp/out.lsp",{u"地类编码":u"国空混合类",u"编码A":u"国空一级类",u"编码B":u"国空二级类",u"编码C":u"国空三级类"})
+def conv_autolisp_insertKZBlock(dataset, output_lsp, prop_map, block_name = u"控制指标", fields_need_trans = [], translation = lambda x:x):
+	features = af.to_dict(dataset)
+	commands = []
+	for fea in features:
+		try:
+			ct = fea['SHAPE@'].centroid
+		except:
+			print(u"几何出错未导出： \n%s\n"%(fea,))
+			continue
+		x  = ct.X
+		y  = ct.Y
+		props  = prop_map.values()
+		values = []
+		for field_name in props:
+			if field_name in fields_need_trans:
+				values.append(translation(fea[field_name]))
+			else:
+				values.append(fea[field_name])
+		command = '(insertKZBlock "%s" %f %f'+' "%s"'*len(props)+')'
+		command %= (block_name,x,y)+tuple(values)
+		commands.append(command)
+	
+	prop_titles = u" ".join([u"arg_%d"%(i) for i in range(len(props))])
+	prop_definitions = u"".join([u'''              ((wcmatch tag "*%s*") (vla-put-TextString attr (vl-princ-to-string arg_%d)))'''%(key,idx) for idx,key in enumerate(props)])
+	autolisp_function = u'''
+(vl-load-com)
 
+;;; 主函数：insertKZBlock
+;;; 参数：块名, X, Y, 以及 N 个业务属性
+(defun insertKZBlock (bn x y %s / acadObj doc ms pt obj attrs tag val)
+  (setq acadObj (vlax-get-acad-object)
+        doc (vla-get-ActiveDocument acadObj)
+        ms (vla-get-ModelSpace doc)
+        pt (vlax-3d-point (list x y 0.0)))
 
-
+  ;; 1. 验证块定义是否存在
+  (if (tblsearch "BLOCK" bn)
+    (progn
+      ;; 2. 插入块引用
+      (setq obj (vla-InsertBlock ms pt bn 1.0 1.0 1.0 0.0))
+      
+      ;; 3. 如果块有属性，开始批量填充
+      (if (= (vla-get-HasAttributes obj) :vlax-true)
+        (progn
+          (setq attrs (vlax-invoke obj 'GetAttributes))
+          (foreach attr attrs
+            (setq tag (vla-get-TagString attr))
+            ;; 根据标签名匹配对应的参数值 (请确保 CAD 块内的 Tag 名字与下面引号内一致)
+            (cond
+%s
+            )
+          )
+          (vla-update obj) ; 强制刷新显示
+          (princ (strcat "\\n[成功] 已在 (" (rtos x 2 2) "," (rtos y 2 2) ") 插入指标块。"))
+        )
+        (princ "\\n[警告] 该块定义没有属性标签。")
+      )
+    )
+    (princ (strcat "\\n[错误] 图纸中找不到块: " bn))
+  )
+  (princ)
+)
+	'''%(prop_titles,prop_definitions)
+	autolisp_function+="\n\n"
+	for command in commands:
+		autolisp_function+=command+"\n"
+	with open(output_lsp, "w") as f:
+		f.write(autolisp_function.encode('utf8'))
+	
 
 
 
