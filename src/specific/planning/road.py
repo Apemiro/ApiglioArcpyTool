@@ -35,7 +35,9 @@ def edge_line_closure(input_lines, output_lines, max_dist=None):
 	lines = af.to_list(input_lines)
 	thrum = []
 	for line in lines:
-		thrum += __bae(line)
+		if not line: continue
+		bae = __bae(line)
+		if bae: thrum += bae
 	points_uniq = [arcpy.Point(*p.split(",")) for p in set(["%f,%f"%(x.X,x.Y) for x in thrum])]
 	
 	nearest_map = {}
