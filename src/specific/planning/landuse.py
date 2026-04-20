@@ -168,186 +168,186 @@ def summarize_area_to_excel(import_landuse, landuse_fields, export_xlsx, landuse
 	return area_map
 
 # 由gemini改写自summarize_area_to_excel，人工改写
-def summarize_area_to_excel_2(import_landuse, landuse_fields, export_xlsx, district_field=None, landuse_map='TSP', **excel_options):
-    LanduseMap.use_switch(landuse_map)
-    
-    # 1. 统计面积：初始化双层字典 {分区名: {用地编码: 面积}}
-    # "合计" 作为固定的总体统计 Sheet
-    dist_area_map = {u"合计": {}}
+def summarize_area_to_excel_2(import_landuse, landuse_fields, export_xlsx, district_field=None, floor_area_field=None, landuse_map='TSP', **excel_options):
+	LanduseMap.use_switch(landuse_map)
+	
+	# 1. 统计数据初始化
+	dist_area_map = {u"合计": {}}
+	dist_floor_map = {u"合计": {}}
 
-    # 构造搜索字段
-    search_fields = ['SHAPE@'] + landuse_fields
-    dist_idx = -1
-    if district_field:
-        search_fields.append(district_field)
-        dist_idx = len(search_fields) - 1
+	# 字段校验与构造
+	exist_fields = [f.name.lower() for f in arcpy.ListFields(import_landuse)]
+	search_fields = ['SHAPE@'] + landuse_fields
+	
+	dist_idx = -1
+	if district_field and district_field.lower() in exist_fields:
+		search_fields.append(district_field)
+		dist_idx = len(search_fields) - 1
 
-    cursor = arcpy.da.SearchCursor(import_landuse, search_fields)
-    for row in cursor:
-        # 获取分区名称
-        dist_name = None
-        if dist_idx != -1:
-            val = row[dist_idx]
-            if val is not None:
-                dist_name = unicode(val).strip()
-        
-        # 解析用地编码
-        landuse = None
-        for field_idx in range(1, len(landuse_fields) + 1):
-            lu = row[field_idx]
-            if not lu: continue
-            lu = unicode(lu).strip()
-            if lu[0] in u'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                if lu in LanduseMap.dm2mc: landuse = lu; break
-            else:
-                if lu in LanduseMap.mc2dm: landuse = LanduseMap.mc2dm[lu]; break
-        
-        if landuse:
-            area_val = row[0].area
-            # 累加到合计
-            dist_area_map[u"合计"][landuse] = dist_area_map[u"合计"].get(landuse, 0.0) + area_val
-            # 累加到具体分区
-            if dist_name:
-                if dist_name not in dist_area_map:
-                    dist_area_map[dist_name] = {}
-                dist_area_map[dist_name][landuse] = dist_area_map[dist_name].get(landuse, 0.0) + area_val
-    del cursor
+	floor_idx = -1
+	if floor_area_field and floor_area_field.lower() in exist_fields:
+		search_fields.append(floor_area_field)
+		floor_idx = len(search_fields) - 1
 
-    # 2. 参数处理
-    unit_division = {"ha": 10000.0, "hm2": 10000.0, "km2": 1000000.0}.get(excel_options.get("unit"), 10000.0)
-    unit_label = excel_options.get("unit", u"公顷").replace("2", u"²")
-    compact = excel_options.get("compact", False)
-    sum_caption = excel_options.get("sum_caption", u"其中")
-    title_mode = excel_options.get("title", "dm+mc")
+	with arcpy.da.SearchCursor(import_landuse, search_fields) as cursor:
+		for row in cursor:
+			dist_name = unicode(row[dist_idx]).strip() if dist_idx != -1 and row[dist_idx] is not None else None
+			
+			landuse = None
+			for field_idx in range(1, len(landuse_fields) + 1):
+				lu = row[field_idx]
+				if not lu: continue
+				lu = unicode(lu).strip()
+				if lu[0] in u'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+					if lu in LanduseMap.dm2mc: landuse = lu; break
+				else:
+					if lu in LanduseMap.mc2dm: landuse = LanduseMap.mc2dm[lu]; break
+			
+			if landuse:
+				area_val = row[0].area
+				f_val = 0.0
+				if floor_idx != -1 and row[floor_idx] is not None:
+					try: f_val = float(row[floor_idx])
+					except: f_val = 0.0
+				
+				# 累加数据
+				for m in [dist_area_map, dist_floor_map]:
+					target = m[u"合计"]
+					val = area_val if m == dist_area_map else f_val
+					target[landuse] = target.get(landuse, 0.0) + val
+					if dist_name:
+						if dist_name not in m: m[dist_name] = {}
+						m[dist_name][landuse] = m[dist_name].get(landuse, 0.0) + val
 
-    get_title = {
-        "dm": lambda x: x,
-        "mc": lambda x: LanduseMap.dm2mc[x],
-        "dm+mc": lambda x: u"%s(%s)" % (LanduseMap.dm2mc[x], x)
-    }.get(title_mode, lambda x: u"%s(%s)" % (LanduseMap.dm2mc[x], x))
-    
-    title_str = {u"dm": u"用地代码", u"mc": u"用地名称"}.get(title_mode, u"用地名称(用地代码)")
+	# 2. 参数与样式设置
+	unit_division = {"ha": 10000.0, "hm2": 10000.0, "km2": 1000000.0}.get(excel_options.get("unit"), 10000.0)
+	unit_label = excel_options.get("unit", u"公顷").replace("2", u"²")
+	compact, sum_caption = excel_options.get("compact", False), excel_options.get("sum_caption", u"其中")
+	title_mode = excel_options.get("title", "dm+mc")
+	get_title = {"dm": lambda x: x, "mc": lambda x: LanduseMap.dm2mc[x]}.get(title_mode, lambda x: u"%s(%s)" % (LanduseMap.dm2mc[x], x))
+	title_str = {u"dm": u"用地代码", u"mc": u"用地名称"}.get(title_mode, u"用地名称(用地代码)")
 
-    # 3. 样式定义
-    wb = xlwt.Workbook(encoding='utf8')
-    al_center = xlwt.Alignment(); al_center.vert = 1; al_center.horz = 2
-    al_left = xlwt.Alignment(); al_left.vert = 1; al_left.horz = 1
-    
-    style_bold = xlwt.easyxf('font: name Arial, bold on'); style_bold.alignment = al_left
-    style_normal = xlwt.easyxf('font: name Arial'); style_normal.alignment = al_left
-    style_num = xlwt.easyxf('font: name Arial', num_format_str='0.00'); style_num.alignment = al_center
-    style_num_bold = xlwt.easyxf('font: name Arial, bold on', num_format_str='0.00'); style_num_bold.alignment = al_center
-    style_pct = xlwt.easyxf('font: name Arial', num_format_str='0.00%'); style_pct.alignment = al_center
-    style_pct_bold = xlwt.easyxf('font: name Arial, bold on', num_format_str='0.00%'); style_pct_bold.alignment = al_center
+	wb = xlwt.Workbook(encoding='utf8')
+	style_bold = xlwt.easyxf('font: name Arial, bold on; align: vert center, horz left')
+	style_normal = xlwt.easyxf('font: name Arial; align: vert center, horz left')
+	style_num = xlwt.easyxf('font: name Arial; align: vert center, horz center', num_format_str='0.00')
+	style_num_bold = xlwt.easyxf('font: name Arial, bold on; align: vert center, horz center', num_format_str='0.00')
+	style_pct = xlwt.easyxf('font: name Arial; align: vert center, horz center', num_format_str='0.00%')
+	style_pct_bold = xlwt.easyxf('font: name Arial, bold on; align: vert center, horz center', num_format_str='0.00%')
 
-    # 4. 循环生成各分区 Sheet
-    # 排序：确保“合计”在第一个
-    all_sheets = sorted(dist_area_map.keys(), key=lambda x: x != u"合计")
+	# 3. 循环生成各分区 Sheet
+	all_sheets = sorted(dist_area_map.keys(), key=lambda x: x != u"合计")
+	for sheet_name in all_sheets:
+		area_map = dist_area_map[sheet_name]
+		floor_map = dist_floor_map.get(sheet_name, {})
+		ws = wb.add_sheet(sheet_name, cell_overwrite_ok=True)
+		
+		# 动态列索引定义
+		has_floor = (floor_idx != -1)
+		# A, B, C 为用地名称
+		col_area = 3  # D列
+		col_pct = 4   # E列
+		col_floor = 5 if has_floor else None # F列 (如果有)
+		col_area_let = "D"
+		col_floor_let = "F"
 
-    for sheet_name in all_sheets:
-        area_map = dist_area_map[sheet_name]
-        ws = wb.add_sheet(sheet_name, cell_overwrite_ok=True)
-        
-        # 写入表头
-        headers = [u"一级类", u"二级类", u"三级类", u"用地面积(%s)" % unit_label, u"占比"]
-        for i, h in enumerate(headers): ws.write(0, i, h, style_bold)
-        ws.write_merge(0, 0, 0, 2, title_str, style_bold)
+		# 写入表头
+		headers = [u"一级类", u"二级类", u"三级类", u"用地面积(%s)" % unit_label]
+		headers.append(u"占比")
+		if has_floor: headers.append(u"建筑面积(m²)")
+		for i, h in enumerate(headers): ws.write(0, i, h, style_bold)
+		ws.write_merge(0, 0, 0, 2, title_str, style_bold)
 
-        # 有效编码计算
-        active_keys = {k for k in area_map if area_map[k] > 0}
-        valid_keys = {p for k in active_keys for p in [k[:2], k[:4], k] if p in LanduseMap.dm2mc} if compact else set(LanduseMap.dm2mc.keys())
-        
-        curr_row = 1
-        d1_row_refs = []  
-        bold_rows = []    
+		# 逻辑计算
+		active_keys = {k for k in area_map if area_map[k] > 0}
+		valid_keys = {p for k in active_keys for p in [k[:2], k[:4], k] if p in LanduseMap.dm2mc} if compact else set(LanduseMap.dm2mc.keys())
+		curr_row, d1_row_refs, bold_rows = 1, [], []
+		dm1_list = sorted([d for d in valid_keys if len(d) == 2])
 
-        dm1_list = sorted([d for d in valid_keys if len(d) == 2])
-        for d1 in dm1_list:
-            d1_area = sum([v for k, v in area_map.items() if k.startswith(d1)])
-            if d1_area <= 0 and compact: continue
+		for d1 in dm1_list:
+			d1_area = sum([v for k, v in area_map.items() if k.startswith(d1)])
+			d1_floor = sum([v for k, v in floor_map.items() if k.startswith(d1)])
+			if d1_area <= 0 and compact: continue
 
-            d1_parent_row = curr_row
-            d1_row_refs.append(curr_row + 1)
-            bold_rows.append(curr_row + 1)
-            
-            subs_d2 = sorted([d for d in valid_keys if len(d) == 4 and d.startswith(d1)])
+			d1_p_row = curr_row
+			d1_row_refs.append(curr_row + 1)
+			bold_rows.append(curr_row + 1)
+			subs_d2 = sorted([d for d in valid_keys if len(d) == 4 and d.startswith(d1)])
 
-            # 情况 A: 孤项合并
-            if len(subs_d2) == 1 and compact:
-                d2_lone = subs_d2[0]
-                subs_d3_lone = sorted([d for d in valid_keys if len(d) > 4 and d.startswith(d2_lone)])
-                if len(subs_d3_lone) == 1:
-                    display = u"%s [%s] [%s]" % (get_title(d1), get_title(d2_lone), get_title(subs_d3_lone[0]))
-                else:
-                    display = u"%s [%s]" % (get_title(d1), get_title(d2_lone))
-                ws.write_merge(curr_row, curr_row, 0, 2, display, style_bold)
-                ws.write(curr_row, 3, d1_area / unit_division, style_num_bold)
-                curr_row += 1
-            else:
-                # 情况 B: 展开
-                ws.write_merge(curr_row, curr_row, 0, 2, get_title(d1), style_bold)
-                curr_row += 1
-                
-                if subs_d2:
-                    d2_refs_for_d1 = []
-                    sub_start_d1 = curr_row
-                    for d2 in subs_d2:
-                        d2_area_total = sum([v for k, v in area_map.items() if k.startswith(d2)])
-                        d2_parent_row = curr_row
-                        d2_refs_for_d1.append(curr_row + 1)
-                        subs_d3 = sorted([d for d in valid_keys if len(d) > 4 and d.startswith(d2)])
-                        
-                        if len(subs_d3) == 1 and compact:
-                            ws.write_merge(curr_row, curr_row, 1, 2, u"%s [%s]" % (get_title(d2), get_title(subs_d3[0])), style_normal)
-                            ws.write(curr_row, 3, d2_area_total / unit_division, style_num)
-                            curr_row += 1
-                        elif not subs_d3:
-                            ws.write_merge(curr_row, curr_row, 1, 2, get_title(d2), style_normal)
-                            ws.write(curr_row, 3, d2_area_total / unit_division, style_num)
-                            curr_row += 1
-                        else:
-                            ws.write_merge(curr_row, curr_row, 1, 2, get_title(d2), style_normal)
-                            curr_row += 1
-                            d3_refs_for_d2 = []
-                            sub_start_d2, d3_sum = curr_row, 0.0
-                            for d3 in subs_d3:
-                                val = area_map.get(d3, 0.0)
-                                ws.write(curr_row, 2, get_title(d3), style_normal); ws.write(curr_row, 3, val / unit_division, style_num)
-                                d3_refs_for_d2.append(curr_row + 1); d3_sum += val; curr_row += 1
-                            
-                            if d2_area_total - d3_sum > 0.0001:
-                                ws.write(curr_row, 2, u"其他%s" % LanduseMap.dm2mc[d2], style_normal)
-                                ws.write(curr_row, 3, (d2_area_total - d3_sum) / unit_division, style_num)
-                                d3_refs_for_d2.append(curr_row + 1); curr_row += 1
-                            
-                            ws.write_merge(sub_start_d2, curr_row - 1, 1, 1, sum_caption, style_normal)
-                            ws.write(d2_parent_row, 3, xlwt.Formula("SUM(" + ",".join(["D%d" % r for r in d3_refs_for_d2]) + ")"), style_num)
+			if len(subs_d2) == 1 and compact:
+				d2_lone = subs_d2[0]
+				subs_d3_lone = sorted([d for d in valid_keys if len(d) > 4 and d.startswith(d2_lone)])
+				disp = u"%s [%s]" % (get_title(d1), get_title(d2_lone))
+				if len(subs_d3_lone) == 1: disp += u" [%s]" % get_title(subs_d3_lone[0])
+				ws.write_merge(curr_row, curr_row, 0, 2, disp, style_bold)
+				ws.write(curr_row, col_area, d1_area / unit_division, style_num_bold)
+				if has_floor: ws.write(curr_row, col_floor, d1_floor, style_num_bold)
+				curr_row += 1
+			else:
+				ws.write_merge(curr_row, curr_row, 0, 2, get_title(d1), style_bold)
+				curr_row += 1
+				if subs_d2:
+					d2_refs, sub_start_d1 = [], curr_row
+					for d2 in subs_d2:
+						d2_a = sum([v for k, v in area_map.items() if k.startswith(d2)])
+						d2_f = sum([v for k, v in floor_map.items() if k.startswith(d2)])
+						d2_p_row = curr_row
+						d2_refs.append(curr_row + 1)
+						subs_d3 = sorted([d for d in valid_keys if len(d) > 4 and d.startswith(d2)])
+						
+						if not subs_d3 or (len(subs_d3) == 1 and compact):
+							disp = u"%s [%s]" % (get_title(d2), get_title(subs_d3[0])) if subs_d3 else get_title(d2)
+							ws.write_merge(curr_row, curr_row, 1, 2, disp, style_normal)
+							ws.write(curr_row, col_area, d2_a / unit_division, style_num)
+							if has_floor: ws.write(curr_row, col_floor, d2_f, style_num)
+							curr_row += 1
+						else:
+							ws.write_merge(curr_row, curr_row, 1, 2, get_title(d2), style_normal)
+							curr_row += 1
+							d3_refs, sub_start_d2, d3_sa, d3_sf = [], curr_row, 0.0, 0.0
+							for d3 in subs_d3:
+								a_v, f_v = area_map.get(d3, 0.0), floor_map.get(d3, 0.0)
+								ws.write(curr_row, 2, get_title(d3), style_normal)
+								ws.write(curr_row, col_area, a_v / unit_division, style_num)
+								if has_floor: ws.write(curr_row, col_floor, f_v, style_num)
+								d3_refs.append(curr_row + 1); d3_sa += a_v; d3_sf += f_v; curr_row += 1
+							if d2_a - d3_sa > 0.0001:
+								ws.write(curr_row, 2, u"其他%s" % LanduseMap.dm2mc[d2], style_normal)
+								ws.write(curr_row, col_area, (d2_a - d3_sa) / unit_division, style_num)
+								if has_floor: ws.write(curr_row, col_floor, d2_f - d3_sf, style_num)
+								d3_refs.append(curr_row + 1); curr_row += 1
+							ws.write_merge(sub_start_d2, curr_row - 1, 1, 1, sum_caption, style_normal)
+							ws.write(d2_p_row, col_area, xlwt.Formula("SUM(" + ",".join(["%s%d"%(col_area_let, r) for r in d3_refs]) + ")"), style_num)
+							if has_floor: ws.write(d2_p_row, col_floor, xlwt.Formula("SUM(" + ",".join(["%s%d"%(col_floor_let, r) for r in d3_refs]) + ")"), style_num)
 
-                    d2_val_sum = sum([v for k, v in area_map.items() if len(k) >= 4 and k[:2] == d1])
-                    if d1_area - d2_val_sum > 0.0001:
-                        ws.write_merge(curr_row, curr_row, 1, 2, u"其他%s" % LanduseMap.dm2mc[d1], style_normal)
-                        ws.write(curr_row, 3, (d1_area - d2_val_sum) / unit_division, style_num)
-                        d2_refs_for_d1.append(curr_row + 1); curr_row += 1
+					d2_all_a = sum([v for k, v in area_map.items() if len(k) >= 4 and k[:2] == d1])
+					if d1_area - d2_all_a > 0.0001:
+						ws.write_merge(curr_row, curr_row, 1, 2, u"其他%s" % LanduseMap.dm2mc[d1], style_normal)
+						ws.write(curr_row, col_area, (d1_area - d2_all_a) / unit_division, style_num)
+						if has_floor: ws.write(curr_row, col_floor, d1_floor - sum([v for k, v in floor_map.items() if len(k) >= 4 and k[:2] == d1]), style_num)
+						d2_refs.append(curr_row + 1); curr_row += 1
+					
+					ws.write_merge(sub_start_d1, curr_row - 1, 0, 0, sum_caption, style_normal)
+					ws.write(d1_p_row, col_area, xlwt.Formula("SUM(" + ",".join(["%s%d"%(col_area_let, r) for r in d2_refs]) + ")"), style_num_bold)
+					if has_floor: ws.write(d1_p_row, col_floor, xlwt.Formula("SUM(" + ",".join(["%s%d"%(col_floor_let, r) for r in d2_refs]) + ")"), style_num_bold)
+				else:
+					ws.write(d1_p_row, col_area, d1_area / unit_division, style_num_bold)
+					if has_floor: ws.write(d1_p_row, col_floor, d1_floor, style_num_bold)
 
-                    ws.write_merge(sub_start_d1, curr_row - 1, 0, 0, sum_caption, style_normal)
-                    ws.write(d1_parent_row, 3, xlwt.Formula("SUM(" + ",".join(["D%d" % r for r in d2_refs_for_d1]) + ")"), style_num_bold)
-                else:
-                    ws.write(d1_parent_row, 3, d1_area / unit_division, style_num_bold)
+		# 合计与占比回填
+		total_idx = curr_row
+		ws.write_merge(total_idx, total_idx, 0, 2, u"合计", style_bold)
+		ws.write(total_idx, col_area, xlwt.Formula("SUM(" + ",".join(["%s%d"%(col_area_let, r) for r in d1_row_refs]) + ")"), style_num_bold)
+		if has_floor: ws.write(total_idx, col_floor, xlwt.Formula("SUM(" + ",".join(["%s%d"%(col_floor_let, r) for r in d1_row_refs]) + ")"), style_num_bold)
+		ws.write(total_idx, col_pct, 1.0, style_pct_bold)
+		
+		t_ref = "%s$%d" % (col_area_let, total_idx + 1)
+		for r in range(1, total_idx):
+			st = style_pct_bold if (r + 1) in bold_rows else style_pct
+			ws.write(r, col_pct, xlwt.Formula("%s%d/%s" % (col_area_let, r + 1, t_ref)), st)
 
-        # 合计行
-        total_row_idx = curr_row
-        bold_rows.append(total_row_idx + 1)
-        ws.write_merge(total_row_idx, total_row_idx, 0, 2, u"合计", style_bold)
-        ws.write(total_row_idx, 3, xlwt.Formula("SUM(" + ",".join(["D%d" % r for r in d1_row_refs]) + ")"), style_num_bold)
-        ws.write(total_row_idx, 4, 1.0, style_pct_bold)
+	wb.save(export_xlsx)
 
-        # 占比回填
-        total_ref = "D$%d" % (total_row_idx + 1)
-        for r in range(1, total_row_idx):
-            style = style_pct_bold if (r + 1) in bold_rows else style_pct
-            ws.write(r, 4, xlwt.Formula("D%d/%s" % (r + 1, total_ref)), style)
-
-    wb.save(export_xlsx)
 
 
 
