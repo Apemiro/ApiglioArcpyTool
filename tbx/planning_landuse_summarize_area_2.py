@@ -20,9 +20,10 @@ unit_str        = arcpy.GetParameterAsText(5)
 title_str       = arcpy.GetParameterAsText(6)
 sumcap_str      = arcpy.GetParameterAsText(7)
 compact         = arcpy.GetParameter(8)
-bracket         = arcpy.GetParameter(9)
-# bracket 默认有效
-landuse_map_str = arcpy.GetParameter(10)
+district_field  = arcpy.GetParameterAsText(9)
+# bracket 改成分区字段
+floor_area_field  = arcpy.GetParameterAsText(10)
+landuse_map_str = arcpy.GetParameter(11)
 # landuse_map_str 暂时只支持TSP
 
 
@@ -38,4 +39,4 @@ elif title_str == u"\u5730\u7c7b\u540d\u79f0":
 	title_val = "mc"
 else:
 	title_val = "dm+mc"
-lu.summarize_area_to_excel_2(import_landuse, landuse_fields, export_xlsx, unit=unit_val, title=title_val, sum_caption=sumcap_str, compact=compact)
+lu.summarize_area_to_excel_2(import_landuse, landuse_fields, export_xlsx, unit=unit_val, title=title_val, sum_caption=sumcap_str, compact=compact, district_field=district_field, floor_area_field=floor_area_field)
