@@ -312,7 +312,7 @@ def summarize_area_to_excel_2(import_landuse, landuse_fields, export_xlsx, distr
 								if has_floor: ws.write(curr_row, col_floor, f_v, style_num)
 								d3_refs.append(curr_row + 1); d3_sa += a_v; d3_sf += f_v; curr_row += 1
 							if d2_a - d3_sa > 0.0001:
-								ws.write(curr_row, 2, u"其他%s" % LanduseMap.dm2mc[d2], style_normal)
+								ws.write(curr_row, 2, u"未分细类", style_normal)
 								ws.write(curr_row, col_area, (d2_a - d3_sa) / unit_division, style_num)
 								if has_floor: ws.write(curr_row, col_floor, d2_f - d3_sf, style_num)
 								d3_refs.append(curr_row + 1); curr_row += 1
@@ -322,7 +322,7 @@ def summarize_area_to_excel_2(import_landuse, landuse_fields, export_xlsx, distr
 
 					d2_all_a = sum([v for k, v in area_map.items() if len(k) >= 4 and k[:2] == d1])
 					if d1_area - d2_all_a > 0.0001:
-						ws.write_merge(curr_row, curr_row, 1, 2, u"其他%s" % LanduseMap.dm2mc[d1], style_normal)
+						ws.write_merge(curr_row, curr_row, 1, 2, u"未分细类", style_normal)
 						ws.write(curr_row, col_area, (d1_area - d2_all_a) / unit_division, style_num)
 						if has_floor: ws.write(curr_row, col_floor, d1_floor - sum([v for k, v in floor_map.items() if len(k) >= 4 and k[:2] == d1]), style_num)
 						d2_refs.append(curr_row + 1); curr_row += 1
